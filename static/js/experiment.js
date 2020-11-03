@@ -1,3 +1,6 @@
+var IMAGE_NAMES = ['blue', 'orange']
+var WORDS = ['apple', 'contemporary']
+var TRAIN_PRESENTATION_DURATION = 3000
 
 async function initializeExperiment() {
   LOG_DEBUG('initializeExperiment');
@@ -10,7 +13,28 @@ async function initializeExperiment() {
   const N_TRIAL = 4;
 
   // This ensures that images appear exactly when we tell them to.
-  jsPsych.pluginAPI.preloadImages(['static/images/blue.png', 'static/images/orange.png']);
+  var images = IMAGE_NAMES.map(name => `static/images/${name}.png`);
+  jsPsych.pluginAPI.preloadImages(images);
+
+
+  var pairs = _.zip(_.shuffle(images), _.shuffle(WORDS));
+
+  var train_trials = pairs.map(([image, word]) => {
+    var html = `
+      <div class="image-container">
+      <img src="${image}" style="width:100%;">
+        <div class="centered-text">${word}</div>
+      </div>
+    `;
+    return {
+      type: 'html-keyboard-response',
+      stimulus: html,
+      choices: [],
+      trial_duration: TRAIN_PRESENTATION_DURATION
+    };
+  });
+
+  console.log(train_trials);
 
   // To avoid repeating ourselves,  we create a variable for a piece
   // of html that we use multiple times.
@@ -36,116 +60,7 @@ async function initializeExperiment() {
 
     ${anykey}
     `)
-    // text: markdown(
-    //   `# Welcome
-
-    //   This is a reworked version of the go/no-go task constructed in a
-    //   [tutorial](http://docs.jspsych.org/tutorials/rt-task/) 
-    //   on the jsPsych website. Note that the code here is a little different
-    //   than the original.
-
-    //   Specifically, the code here is better 😉.
-
-    //   ${anykey}
-    // `)
-
   };
-
-  var instructions_block = {
-    type: "html-keyboard-response",
-    // Sometimes we do need the additional control of html.
-    // We can mix markdown with html, but you can't use markdown
-    // inside an html element, which is why we use <b>html bold tags</b> 
-    // instead of the prettier **markdown format**.
-    stimulus: markdown(`
-      # Instructions
-
-      In this experiment, a circle will appear in the center 
-      of the screen. If the circle is **blue**, 
-      press the letter F on the keyboard as fast as you can.
-      If the circle is **orange**, do not press 
-      any key.
-      
-      <div class='center'>
-        <div class='left center'>
-          <img src='static/images/blue.png'></img>
-          <p><b>Press the F key</b></p>
-        </div>
-        <div class='right center'>
-          <img src='static/images/orange.png'></img>
-          <p><b>Do not press a key</b></p>
-        </div>
-      </div>
-
-      ${anykey}
-    `),
-    timing_post_trial: 2000
-  };
-
-  /////////////////
-  // Test trials //
-  /////////////////
-
-  var sorting = {
-    type: 'free-sort',
-    stimuli: ["static/images/blue.png", "static/images/orange.png"]
-  }
-
-  var stimuli = [
-    {
-      stimulus: "static/images/blue.png",
-      data: { response: 'go' }
-    },
-    {
-      stimulus: "static/images/orange.png",
-      data: { response: 'no-go' }
-    }
-  ];
-
-  var trials = jsPsych.randomization.repeat(stimuli, Math.floor(N_TRIAL / 2));
-
-  var fixation = {
-    type: 'html-keyboard-response',
-    stimulus: '<div style="margin-top: 90px; font-size:60px;">+</div>',
-    choices: jsPsych.NO_KEYS,
-    trial_duration() {
-      return Math.floor(Math.random() * 1500) + 750
-    },
-  }
-
-  var test_block = {
-    type: "image-keyboard-response",
-    choices: ['F'],
-    trial_duration: 1500,
-    timeline: _.flatten(trials.map(trial => [fixation, trial]))
-  };
-
-  function getAverageResponseTime() {
-
-    var trials = jsPsych.data.getTrialsOfType('html-keyboard-response');
-
-    var sum_rt = 0;
-    var valid_trial_count = 0;
-    for (var i = 0; i < trials.length; i++) {
-      if (trials[i].response == 'go' && trials[i].rt > -1) {
-        sum_rt += trials[i].rt;
-        valid_trial_count++;
-      }
-    }
-    return Math.floor(sum_rt / valid_trial_count);
-  }
-
-  var debrief_block = {
-    type: "html-keyboard-response",
-    // We don't want to
-    stimulus() {
-      return `
-        Your average response time was ${getAverageResponseTime()}.
-        Press any key to complete the experiment. Thanks!
-      `
-    }
-  };
-
 
   /////////////////////////
   // Experiment timeline //
@@ -157,10 +72,8 @@ async function initializeExperiment() {
   // so you don't have to click through them to test
   // the section you're working on.
   var timeline = [
-    // welcome_block,
-    // instructions_block,
-    sorting,
-    test_block,
+    welcome_block,
+    ...train_trials,
     debrief_block,
   ];
 

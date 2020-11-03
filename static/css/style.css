@@ -29,6 +29,22 @@
 .message {
   /*font-size: 16pt;*/
 }
+
+.image-container {
+  position: relative;
+  text-align: center;
+  color: white;
+  font-size: 30pt;
+  font-weight: bold;
+}
+
+.centered-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
 img.centered {
   display: block;
   margin-left: auto; 
