@@ -74,7 +74,6 @@ async function initializeExperiment() {
   var timeline = [
     welcome_block,
     ...train_trials,
-    debrief_block,
   ];
 
 
