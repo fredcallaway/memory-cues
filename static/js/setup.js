@@ -39,7 +39,7 @@ saveData = function() {
   console.log('saveData');
   return new Promise(function(resolve, reject) {
     var timeout;
-    if (LOCAL) {
+    if (LOCAL || mode == 'demo') {
       resolve('local');
       return;
     }
