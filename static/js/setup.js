@@ -68,7 +68,11 @@ $(window).on('load', function() {
   return saveData().then(function() {
     return delay(500, function() {
       $('#welcome').hide();
-      return initializeExperiment().catch(handleError);
+      if (LOCAL) {
+        return initializeExperiment();
+      } else {
+        return initializeExperiment().catch(handleError);
+      }
     });
   }).catch(function() {
     return $('#data-error').show();
@@ -80,6 +84,7 @@ startExperiment = function(config) {
   var defaults;
   LOG_DEBUG('run');
   defaults = {
+    show_progress_bar: false,
     display_element: 'jspsych-target',
     on_finish: function() {
       if (DEBUG) {

@@ -2,6 +2,8 @@ var IMAGE_NAMES = ['blue', 'orange']
 var WORDS = ['apple', 'contemporary']
 var TRAIN_PRESENTATION_DURATION = 3000
 
+searchParams = new URLSearchParams(location.search)
+
 async function initializeExperiment() {
   LOG_DEBUG('initializeExperiment');
 
@@ -49,33 +51,43 @@ async function initializeExperiment() {
     type: "html-keyboard-response",
     // We use the handy markdown function (defined in utils.js) to format our text.
     stimulus: markdown(`
-    # My Sweet Experiment
+    # Welcome
 
-    This is a reworked version of the go/no-go task constructed in a
-    [tutorial](http://docs.jspsych.org/tutorials/rt-task/) 
-    on the jsPsych website. Note that the code here is a little different
-    than the original.
-
-    Specifically, the code here is better. 😉
+    These are instructions.
 
     ${anykey}
     `)
   };
 
+  var test_trial = {
+    type: 'memtest',
+    options: [
+      {word: 'foo', image: images[0]},
+      {word: 'bar', image: images[1]}
+    ]
+  };
+
+    var debrief = {
+    type: "html-button-response",
+    // We use the handy markdown function (defined in utils.js) to format our text.
+    choices: ["Continue"]
+  };
+
+
   /////////////////////////
   // Experiment timeline //
   /////////////////////////
 
-  // `timeline` determines the high-level structure of the
-  // experiment. When developing the experiment, you
-  // can comment out blocks you aren't working on
-  // so you don't have to click through them to test
-  // the section you're working on.
   var timeline = [
-    welcome_block,
-    ...train_trials,
+    test_trial,
+    debrief,
+    // ...train_trials,
   ];
 
+  var skip = searchParams.get('skip');
+  if (skip != null) {
+    timeline = timeline.slice(skip);
+  }
 
   return startExperiment({
     timeline,
