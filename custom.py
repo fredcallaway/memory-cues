@@ -23,6 +23,16 @@ myauth = PsiTurkAuthorization(config)  # if you want to add a password protect r
 custom_code = Blueprint('custom_code', __name__, template_folder='templates', static_folder='static')
 
 
+@custom_code.route('/')
+def demo():
+    data = {
+        key: "{{ " + key + " }}"
+        for key in ['uniqueId', 'condition', 'counterbalance', 'adServerLoc', 'mode']
+    }
+    data['mode'] = 'demo'
+    return render_template('exp.html', **data)
+
+
 def get_participants(codeversion):
     return (
         Participant
