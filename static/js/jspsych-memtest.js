@@ -14,9 +14,24 @@ jsPsych.plugins["memtest"] = (function() {
   };
 
   plugin.trial = function(display_element, trial) {
-
+    let display = $(display_element);
     let {options} = trial;
-    let stage = $(display_element);
+
+    if (trial.practice) {
+      $('<div>')
+      .html(markdown(`
+        # Practice trial
+
+        - Hover over the gray boxes to show the image underneath.
+        - As soon as you remember the word for an image, click on it.
+        - Type the word into the text box and hit enter.
+      `))
+      .appendTo(display);
+      
+    }
+
+
+
 
     let clicked = false;
     let data = {
@@ -33,8 +48,13 @@ jsPsych.plugins["memtest"] = (function() {
       });
     }
 
-    options.forEach(({word, image}) => {
+    let stage = $('<div>')
+    .css({
+      'text-align': 'center',
+    })
+    .appendTo(display);
 
+    options.forEach(({word, image}) => {
       let block = $('<div>')
       .css({
           float: 'left',
@@ -74,7 +94,7 @@ jsPsych.plugins["memtest"] = (function() {
         if (clicked) return;
         log('click', {word});
         clicked = true;
-        let input_div = $('<div/>').appendTo(display_element);
+        let input_div = $('<div/>').appendTo(stage);
         let input = $('<input />')
         .css({
           width: SIZE - 40
@@ -92,6 +112,7 @@ jsPsych.plugins["memtest"] = (function() {
         });
       });
     });
+
   };
 
   return plugin;
