@@ -1,8 +1,11 @@
-var IMAGE_NAMES = ['blue', 'orange']
-var WORDS = ['apple', 'contemporary']
-var TRAIN_PRESENTATION_DURATION = 3000
+const PARAMS = {
+  train_presentation_duration: 3000,
+  n_repeat: 5,
+  overlay: false,
+}
 
 searchParams = new URLSearchParams(location.search)
+updateExisting(PARAMS, mapObject(Object.fromEntries(searchParams), maybeJson))
 
 function button_trial(html) {
   return {
@@ -21,53 +24,53 @@ async function initializeExperiment() {
   // Setup //
   ///////////
 
-  // trials = await $.getJSON 'static/json/rewards/increasing.json'
-  const N_TRIAL = 4;
-
-  // This ensures that images appear exactly when we tell them to.
-  var images = IMAGE_NAMES.map(name => `static/images/${name}.png`);
+  const stimuli = await $.getJSON('static/stimuli/stimuli.json')
+  
+  let images = Object.values(stimuli.images).map(_.sample)
   jsPsych.pluginAPI.preloadImages(images);
+  // psiturk.preloadImages(images);
+  let pairs = mapObject(stimuli.words, words => {
+    return _.sample(words, 10).map(word => {
+      let image = images.pop()
+      return {word, image}
+    })
+  })
+  let all_pairs = pairs.low.concat(pairs.high)
+  console.log(all_pairs.map)
 
-
-  var pairs = _.zip(_.shuffle(images), _.shuffle(WORDS));
-
-  var train_trials = pairs.map(([image, word]) => {
-    var html = `
+  var train_trials = all_pairs.map(({image, word}) => {
+    var stimulus = PARAMS.overlay ? `
+      <div class="image-container">
+      <img src="${image}"">
+        <div class="centered-text">
+          ${word}
+        </div>
+      </div>
+    ` : `
       <div class="image-container">
       <img src="${image}" style="width:100%;">
-        <div class="centered-text">${word}</div>
       </div>
-    `;
-    return {
-      type: 'html-keyboard-response',
-      stimulus: html,
-      choices: [],
-      trial_duration: TRAIN_PRESENTATION_DURATION
-    };
-  });
+      <div class="word-stim">${word}</div>
+    `
+    return {stimulus};
+  })
 
-  console.log(train_trials);
-
-  // To avoid repeating ourselves,  we create a variable for a piece
-  // of html that we use multiple times.
-  var anykey = "<div class='lower message'>Press any key to continue.</div>";
-
+  var train_block = {
+    type: 'html-keyboard-response',
+    trial_duration: PARAMS.train_presentation_duration,
+    choices: [],
+    timeline: _.range(PARAMS.n_repeat).reduce(acc => acc.concat(_.shuffle(train_trials)), [])
+  };
 
   //////////////////
   // Instructions //
   //////////////////
 
-  var welcome_block = {
-    type: "html-keyboard-response",
-    // We use the handy markdown function (defined in utils.js) to format our text.
-    stimulus: markdown(`
+  var welcome_block = button_trial(`
     # Welcome
 
     These are instructions.
-
-    ${anykey}
-    `)
-  };
+  `)
 
   var test_instruct = button_trial(`
     # Training complete
@@ -108,7 +111,7 @@ async function initializeExperiment() {
     # Task complete
 
     Thanks for participating!
-  `)
+  `);
 
 
   /////////////////////////
@@ -116,6 +119,7 @@ async function initializeExperiment() {
   /////////////////////////
 
   var timeline = [
+    train_block,
     test_instruct,
     test_practice,
     // test_trial,
