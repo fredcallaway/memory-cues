@@ -1,5 +1,6 @@
 const PARAMS = {
   train_presentation_duration: 3000,
+  n_pair: 10,
   n_repeat: 5,
   overlay: false,
 }
@@ -30,13 +31,12 @@ async function initializeExperiment() {
   jsPsych.pluginAPI.preloadImages(images);
   // psiturk.preloadImages(images);
   let pairs = mapObject(stimuli.words, words => {
-    return _.sample(words, 10).map(word => {
+    return _.sample(words, PARAMS.n_pair).map(word => {
       let image = images.pop()
       return {word, image}
     })
   })
   let all_pairs = pairs.low.concat(pairs.high)
-  console.log(all_pairs.map)
 
   var train_trials = all_pairs.map(({image, word}) => {
     var stimulus = PARAMS.overlay ? `
@@ -68,9 +68,10 @@ async function initializeExperiment() {
   //////////////////
 
   var welcome_block = button_trial(`
-    # Welcome
+    # Instructions
 
-    These are instructions.
+    In this experiment, we will test your memory. We will show a series of images
+    paired with words... yada yada
   `)
 
   var test_instruct = button_trial(`
@@ -95,18 +96,21 @@ async function initializeExperiment() {
   //   - Hover over the gray boxes to show the image underneath.
   //   - As soon as you remember the word for an image, click on it.
   //   - Type the word into the text box and hit enter.
-
-    
   // `)
+
+  var test_trials = _.zip(pairs.low, pairs.high).map(options => ({options}))
+  console.log(test_trials)
 
   var test_practice = {
     type: 'memtest',
     practice: true,
-    options: [
-      {word: 'foo', image: images[0]},
-      {word: 'bar', image: images[1]}
-    ]
+    timeline: [test_trials.pop()]
   };
+
+  var test_block = {
+    type: 'memtest',
+    timeline: test_trials
+  }
 
   var debrief = button_trial(`
     # Task complete
@@ -120,10 +124,11 @@ async function initializeExperiment() {
   /////////////////////////
 
   var timeline = [
+    welcome_block,
     train_block,
     test_instruct,
     test_practice,
-    // test_trial,
+    test_block,
     debrief,
     // ...train_trials,
   ];

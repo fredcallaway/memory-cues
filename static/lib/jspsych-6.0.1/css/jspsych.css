@@ -22,12 +22,12 @@
  }
 
  .jspsych-content-wrapper {
-   display: flex;
    /*justify-content: center;
-   align-items: center;*/
-   margin: auto; /* this does the same thing as above two lines in this case */
-   flex: 1 1 100%;
-   width: 100%;
+   /*display: flex;*/
+   /*align-items: center;*/*/
+   /*margin: auto; */
+   /*flex: 1 1 100%;*/
+   /*width: 100%;*/
  }
 
  .jspsych-content {
