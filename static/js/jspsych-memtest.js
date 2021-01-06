@@ -30,9 +30,6 @@ jsPsych.plugins["memtest"] = (function() {
       
     }
 
-
-
-
     let clicked = false;
     let data = {
       trial,

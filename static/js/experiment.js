@@ -57,7 +57,8 @@ async function initializeExperiment() {
 
   var train_block = {
     type: 'html-keyboard-response',
-    trial_duration: PARAMS.train_presentation_duration,
+    stimulus_duration: PARAMS.train_presentation_duration,
+    trial_duration:  PARAMS.train_presentation_duration + 500,
     choices: [],
     timeline: _.range(PARAMS.n_repeat).reduce(acc => acc.concat(_.shuffle(train_trials)), [])
   };
