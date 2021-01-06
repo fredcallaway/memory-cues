@@ -41,14 +41,14 @@ async function initializeExperiment() {
   var train_trials = all_pairs.map(({image, word}) => {
     var stimulus = PARAMS.overlay ? `
       <div class="image-container">
-      <img src="${image}"">
+        <img src="${image}"">
         <div class="centered-text">
           ${word}
         </div>
       </div>
     ` : `
       <div class="image-container">
-      <img src="${image}" style="width:100%;">
+        <img src="${image}">
       </div>
       <div class="word-stim">${word}</div>
     `
