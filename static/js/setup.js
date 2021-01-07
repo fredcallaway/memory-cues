@@ -8,9 +8,11 @@ searchParams = new URLSearchParams(location.search)
 
 LOCAL = false;
 DEBUG = searchParams.get('debug') == 'true';
-PROLIFIC = (searchParams.get('prolific') == 'true') || 
-  (searchParams.get('hitId') == null) || 
-  (searchParams.get('hitId') == 'prolific');
+
+PROLIFIC = true
+// PROLIFIC = (searchParams.get('prolific') == 'true') || 
+//   (searchParams.get('hitId') == null) || 
+//   (searchParams.get('hitId') == 'prolific');
 
 
 if (mode === "{{ mode }}") {
@@ -32,6 +34,7 @@ if (DEBUG) {
   };
 }
 
+DEBUG_TIMEOUT = false
 // ---------- Initialize PsiTurk ---------- #
 psiturk = new PsiTurk(uniqueId, adServerLoc, mode);
 
@@ -40,10 +43,16 @@ saveData = function() {
   return new Promise(function(resolve, reject) {
     var timeout;
     if (LOCAL || mode == 'demo') {
-      resolve('local');
-      return;
+      if (DEBUG_TIMEOUT) { 
+        console.log('debug_timeout')
+        sleep(3000).then(function() {
+          console.log('REJECT')
+          reject('timeout')
+        });
+      } else resolve('local');
+      return
     }
-    timeout = delay(5000, function() {
+    timeout = delay(10000, function() {
       console.log('TIMEOUT');
       return reject('timeout');
     });
@@ -65,7 +74,8 @@ saveData = function() {
 // ---------- Test connection to server, then initialize the experiment. ---------- #
 // initializeExperiment is defined in experiment.coffee
 $(window).on('load', function() {
-  return saveData().then(function() {
+  return saveData()
+  .then(function() {
     return delay(LOCAL ? 0 : 500, function() {
       $('#welcome').hide();
       if (LOCAL) {
@@ -74,7 +84,8 @@ $(window).on('load', function() {
         return initializeExperiment().catch(handleError);
       }
     });
-  }).catch(function() {
+  })
+  .catch(function() {
     return $('#data-error').show();
   });
 });
@@ -87,6 +98,7 @@ startExperiment = function(config) {
     show_progress_bar: false,
     display_element: 'jspsych-target',
     on_finish: function() {
+      console.log('on_finish')
       if (DEBUG) {
         return jsPsych.data.displayData();
       } else {
@@ -102,36 +114,78 @@ startExperiment = function(config) {
 };
 
 completeHIT = function() {
+  $('#jspsych-target').empty()
+  console.log('completeHIT')
   if (PROLIFIC) {
-    $(window).off("beforeunload"); $('#prolific-complete').show()
+    $("#load-icon").remove()
+    $(window).off("beforeunload");
+    $('body').html(`
+      <div class='jspsych-content'>
+          <h1>Thanks!</h1>
+
+          <p>
+          Your completion code is <b>${PROLIFIC_CODE}</b>
+          Click this link to submit<br>
+          <a href=https://app.prolific.co/submissions/complete?cc=${PROLIFIC_CODE}>
+              https://app.prolific.co/submissions/complete?cc=${PROLIFIC_CODE}
+          </a>
+          <p>
+      </div>
+    `)
   } else {
-    psiturk.completeHIT()
+    // psiturk.completeHIT()
   }
 }
 
 submitHit = function() {
   var promptResubmit, triesLeft;
   console.log('submitHit');
-  $('#jspsych-target').html('<div id="load-icon"></div>');
-  triesLeft = 1;
+  $('#jspsych-target').html(`
+    <h1>Saving data</h1>
+
+    <p>Please do <b>NOT</b> refresh or leave the page!
+
+    <div id="load-icon"/>
+
+    <div id="submit-error" class="alert alert-danger">
+      <strong>Error!</strong>
+      We couldn't contact the database. We will try <b><span id="ntry"/></b> more times
+      before continuing without saving the data.
+    </div>
+  `);
+  $("#submit-error").hide()
+  triesLeft = 3;
   promptResubmit = function() {
     console.log('promptResubmit');
     if (triesLeft) {
       console.log('try again', triesLeft);
-      $('#jspsych-target').html(`<div class="alert alert-danger">\n  <strong>Error!</strong>\n  We couldn't contact the database. We will try <b>${triesLeft}</b> more times\n  before attempting to submit your HIT without saving the data.\n\n  <div id="load-icon"></div>\n</div>`);
+      $("#submit-error").show()
+      $("#ntry").html(triesLeft)
       triesLeft -= 1;
       return saveData().catch(promptResubmit);
     } else {
       console.log('GIVE UP');
-      $('#jspsych-target').html("<div class=\"alert alert-danger\">\n  <strong>Error!</strong>\n  We couldn't save your data! Please contact email@bodacious.edu to report\n  the error. Then click the button below.\n</div>\n<br><br>\n<button class='btn btn-primary btn-lg' id=\"resubmit\">I reported the error</button>");
+      $('#jspsych-target').html(`
+        <h1>Saving data</h1>
+
+        <div class="alert alert-danger">
+          <strong>Error!</strong>
+          We couldn't save your data! Please send us a message on Prolific.
+          Then click the button below.
+        </div>
+        <br><br>
+        <button class='btn btn-primary btn-lg' id="resubmit">I reported the error</button>
+      `);
       return new Promise(function(resolve) {
         return $('#resubmit').click(function() {
+          $('#jspsych-target').empty()
           return resolve('gave up');
         });
       });
     }
   };
-  return saveData().then(psiturk.completeHIT).catch(promptResubmit).then(completeHIT);
+  console.log('hello')
+  return saveData(true).catch(promptResubmit).then(completeHIT)
 };
 
 handleError = function(e) {

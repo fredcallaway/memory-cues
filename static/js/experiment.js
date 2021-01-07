@@ -8,6 +8,8 @@ const PARAMS = {
   test_type: 'simple'
 }
 
+const PROLIFIC_CODE = '3854D3C0'
+
 var BONUS = 0
 
 searchParams = new URLSearchParams(location.search)
@@ -139,11 +141,22 @@ async function initializeExperiment() {
     })
   }
 
-  let debrief = button_trial(`
-    # Task complete
+  let debrief = {
+    type: 'survey-text',
+    preamble: markdown(`
+      # Study complete
 
-    Thanks for participating!
-  `);
+      Thanks for participating! You earned a bonus of $${(BONUS / 100).toFixed(2)}.
+      Please provide feedback on the study below.
+      You can leave a box blank if you have no relevant comments.
+    `),
+    questions: [
+      'Were the instructions confusing, hard to understand, or too long?',
+      'Was the interface at all difficult to use?',
+      'Did you experience any technical problems (e.g., images not displaying)?',
+      'Any other comments?',
+    ].map(prompt => ({prompt, rows: 2, columns: 70}))
+  }
 
   /////////////////////////
   // Experiment timeline //
@@ -156,7 +169,6 @@ async function initializeExperiment() {
     test_practice,
     test_block,
     debrief,
-    // ...train_trials,
   ];
 
   let skip = searchParams.get('skip');
