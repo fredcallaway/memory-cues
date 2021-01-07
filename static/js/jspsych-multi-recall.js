@@ -2,7 +2,7 @@
  * Example plugin template
  */
 
-jsPsych.plugins["memtest"] = (function() {
+jsPsych.plugins["multi-recall"] = (function() {
 
   var SIZE = 300;
 
@@ -57,6 +57,7 @@ jsPsych.plugins["memtest"] = (function() {
     .css('margin-top', 170)
     .appendTo(stage)
     .click(function() {
+      log('show blocks')
       btn.remove()
       options.forEach(({word, image}) => {
         let block = $('<div>')

@@ -66,7 +66,7 @@ saveData = function() {
 // initializeExperiment is defined in experiment.coffee
 $(window).on('load', function() {
   return saveData().then(function() {
-    return delay(500, function() {
+    return delay(LOCAL ? 0 : 500, function() {
       $('#welcome').hide();
       if (LOCAL) {
         return initializeExperiment();

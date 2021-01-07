@@ -2,8 +2,13 @@ const PARAMS = {
   train_presentation_duration: 3000,
   n_pair: 10,
   n_repeat: 5,
-  overlay: false,
+  overlay: true,
+  // n_test: 2,
+  bonus_rate: 5,
+  test_type: 'simple'
 }
+
+var BONUS = 0
 
 searchParams = new URLSearchParams(location.search)
 updateExisting(PARAMS, mapObject(Object.fromEntries(searchParams), maybeJson))
@@ -38,8 +43,8 @@ async function initializeExperiment() {
   })
   let all_pairs = pairs.low.concat(pairs.high)
 
-  var train_trials = all_pairs.map(({image, word}) => {
-    var stimulus = PARAMS.overlay ? `
+  let train_trials = all_pairs.map(({image, word}) => {
+    let stimulus = PARAMS.overlay ? `
       <div class="image-container">
         <img src="${image}"">
         <div class="centered-text">
@@ -55,7 +60,7 @@ async function initializeExperiment() {
     return {stimulus};
   })
 
-  var train_block = {
+  let train_block = {
     type: 'html-keyboard-response',
     stimulus_duration: PARAMS.train_presentation_duration,
     trial_duration:  PARAMS.train_presentation_duration + 500,
@@ -67,14 +72,16 @@ async function initializeExperiment() {
   // Instructions //
   //////////////////
 
-  var welcome_block = button_trial(`
+  let welcome_block = button_trial(`
     # Instructions
 
-    In this experiment, we will test your memory. We will show a series of images
-    paired with words... yada yada
-  `)
+    In this experiment, you will play a memory game where you learn pairings
+    between images and words. In the training stage, you will view images with
+    words on them. Try to make an association between the image and the word
+    presented. Once the training stage is completed, you will be tested on
+    your knowledge and have an opportunity to earn a bonus of up to one dollar.`)
 
-  var test_instruct = button_trial(`
+  let multi_instruct =  `
     # Training complete
 
     You're now ready to test your knowledge! On each round, we will display two 
@@ -85,45 +92,64 @@ async function initializeExperiment() {
     and you'll have five seconds to type the word. Hit enter to submit, and the
     next trial will begin.
 
-    We'll start with a pratice trial.
+    You'll earn ${PARAMS.bonus_rate} cents for each correct response you give!
+    Click continue to try a practice trial.
+  `
+
+  let simple_instruct = `
+    # Training complete
+
+    You're now ready to test your knowledge! On each round, we will display a
+    picture you saw before along with a text box. When you're ready to guess,
+    press space. A text box will appear and you'll have five seconds to type
+    the word. Hit enter to submit, and the next trial will begin.
+
+    You'll earn ${PARAMS.bonus_rate} cents for each correct response you give!
+    Click continue to try a practice trial.
+  `
+
+  let n_round = (PARAMS.test_type == 'simple' ? PARAMS.n_pair * 2 : PARAMS.n_pair) - 1
+  let post_practice = button_trial(`
+    # Practice complete
+
+    You'll now get to test your knowledge on ${n_round} rounds. Remember, you
+    earn ${PARAMS.bonus_rate} cents for every correct response. (The practice
+    trial was a freebie, but the next ones count!)
   `)
-  
-  // var test_review = button_trial(`
-  //   # Review
+  let test_instruct = button_trial(PARAMS.test_type == 'simple' ? simple_instruct : multi_instruct)
 
-  //   Great! To quickly review...
 
-  //   - Hover over the gray boxes to show the image underneath.
-  //   - As soon as you remember the word for an image, click on it.
-  //   - Type the word into the text box and hit enter.
-  // `)
 
-  var test_trials = _.zip(pairs.low, pairs.high).map(options => ({options}))
-  console.log(test_trials)
+  let test_trials = PARAMS.test_type == 'simple' ?
+    _.shuffle(pairs.low.concat(pairs.high)) :
+    _.zip(pairs.low, pairs.high).map(options => ({options}))
 
-  var test_practice = {
-    type: 'memtest',
+  let test_practice = {
+    type: `${PARAMS.test_type}-recall`,
+    bonus: PARAMS.bonus_rate,
     practice: true,
     timeline: [test_trials.pop()]
   };
 
-  var test_block = {
-    type: 'memtest',
-    timeline: test_trials
+  let test_block = {
+    type: `${PARAMS.test_type}-recall`,
+    bonus: PARAMS.bonus_rate,
+    timeline: test_trials.map((trial, idx) => {
+      return {...trial, idx}
+    })
   }
 
-  var debrief = button_trial(`
+  let debrief = button_trial(`
     # Task complete
 
     Thanks for participating!
   `);
 
-
   /////////////////////////
   // Experiment timeline //
   /////////////////////////
 
-  var timeline = [
+  let timeline = [
     welcome_block,
     train_block,
     test_instruct,
@@ -133,7 +159,7 @@ async function initializeExperiment() {
     // ...train_trials,
   ];
 
-  var skip = searchParams.get('skip');
+  let skip = searchParams.get('skip');
   if (skip != null) {
     timeline = timeline.slice(skip);
   }
