@@ -170,8 +170,8 @@ async function initializeExperiment() {
   let timeline = [
     welcome_block,
     train_block,
-    test_instruct,
     distractor,
+    test_instruct,
     test_practice,
     post_practice,
     test_block,
