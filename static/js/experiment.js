@@ -28,10 +28,6 @@ function button_trial(html) {
 async function initializeExperiment() {
   LOG_DEBUG('initializeExperiment');
 
-  ///////////
-  // Setup //
-  ///////////
-
   const stimuli = await $.getJSON('static/stimuli/stimuli.json')
   
   let images = Object.values(stimuli.images).map(_.sample)
@@ -70,10 +66,6 @@ async function initializeExperiment() {
     timeline: _.range(PARAMS.n_repeat).reduce(acc => acc.concat(_.shuffle(train_trials)), [])
   };
 
-  //////////////////
-  // Instructions //
-  //////////////////
-
   let welcome_block = button_trial(`
     # Instructions
 
@@ -81,7 +73,22 @@ async function initializeExperiment() {
     between images and words. In the training stage, you will view images with
     words on them. Try to make an association between the image and the word
     presented. Once the training stage is completed, you will be tested on
-    your knowledge and have an opportunity to earn a bonus of up to one dollar.`)
+    your knowledge and have an opportunity to earn a bonus of up to one dollar.
+  `)
+
+  let distractor = {
+      type: 'survey-text',
+      preamble: markdown(`
+        # Quiz
+
+        Please solve the following addition problems.
+      `),
+      questions: [
+        '43 + 62 =',
+        '18 + 37 =',
+        '62 + 81 =',
+      ].map(prompt => ({prompt, rows: 1, columns: 4}))
+    }
 
   let multi_instruct =  `
     # Training complete
@@ -119,8 +126,6 @@ async function initializeExperiment() {
     trial was a freebie, but the next ones count!)
   `)
   let test_instruct = button_trial(PARAMS.test_type == 'simple' ? simple_instruct : multi_instruct)
-
-
 
   let test_trials = PARAMS.test_type == 'simple' ?
     _.shuffle(pairs.low.concat(pairs.high)) :
@@ -166,7 +171,9 @@ async function initializeExperiment() {
     welcome_block,
     train_block,
     test_instruct,
+    distractor,
     test_practice,
+    post_practice,
     test_block,
     debrief,
   ];
