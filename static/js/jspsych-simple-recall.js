@@ -14,7 +14,7 @@ jsPsych.plugins["simple-recall"] = (function() {
   };
 
   plugin.trial = async function(display_element, trial) {
-    console.log('begin simple-recall trial', trial)
+    // console.log('begin simple-recall trial', trial)
     let display = $(display_element);
     let {word, image, practice, bonus, idx} = trial;
 
@@ -94,7 +94,7 @@ jsPsych.plugins["simple-recall"] = (function() {
         .appendTo(stage)
           
         if (response == word) {
-          fb.text('Correct! +5¢').css('color', '#080')
+          fb.text(`Correct! +${bonus}¢`).css('color', '#080')
         } else {
           fb.text('Incorrect').css('color', '#b00')
         }

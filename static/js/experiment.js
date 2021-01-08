@@ -4,7 +4,7 @@ const PARAMS = {
   n_repeat: 5,
   overlay: true,
   // n_test: 2,
-  bonus_rate: 5,
+  bonus_rate: 2,
   test_type: 'simple'
 }
 
@@ -85,43 +85,62 @@ async function initializeExperiment() {
     math_answers.push(a + b)
   })
 
-  let math_ask = {
-    type: 'survey-text',
-    preamble: markdown(`
-      # Quiz
+  // let math_ask = {
+  //   type: 'survey-text',
+  //   preamble: markdown(`
+  //     # Quiz
 
-      Please solve the following addition problems. You will earn 5 cents for
-      each correct response.
-    `),
-    questions: math_questions.map(prompt => ({prompt, rows: 1, columns: 4})),
-    on_finish: function(data){
-      console.log(data)
-      if(data.key_press == 70){// 70 is the numeric code for f
-        data.correct = true; // can add property correct by modify data object directly
-      } else {
-        data.correct = false;
-      }
-    }
+  //     Please solve the following addition problems. You will earn 5 cents for
+  //     each correct response.
+  //   `),
+  //   questions: math_questions.map(prompt => ({prompt, rows: 1, columns: 4})),
+  //   on_finish: function(data){
+  //     console.log(data)
+  //     if(data.key_press == 70){// 70 is the numeric code for f
+  //       data.correct = true; // can add property correct by modify data object directly
+  //     } else {
+  //       data.correct = false;
+  //     }
+  //   }
+  // }
+
+  // let math_feedback = {
+  //   stimulus() {
+  //     let responses = JSON.parse(jsPsych.data.get().last(1).values()[0].responses)
+  //     let n_correct = _.range(3).map(i => responses["Q"+i] == math_answers[i]).reduce((acc, x)=>acc+x)
+  //     let bonus = n_correct * 5
+  //     BONUS += bonus
+  //     return markdown(`
+  //       # Quiz results
+
+  //       You got ${n_correct} questions correct, so you earned $${(bonus/100).toFixed(2)}.
+  //     `)
+  //   },
+  //   type: "html-button-response",
+  //   is_html: true,
+  //   choices: ['Continue'],
+  //   button_html: '<button class="btn btn-primary btn-lg">%choice%</button>',
+  // }
+  // let distractor = {timeline: [math_ask, math_feedback]}
+
+  let distractor_intro = button_trial(`
+    # Math challenge
+
+    Before you continue to the memory test phase, you will have an opportunity
+    to earn some extra bonus money in a speeded math challenge. In each round,
+    you'll see a simple arithmetic problem and you'll have three seconds to 
+    type in the answer (press enter to submit). You'll earn one cent
+    for each correct answer!
+  `)
+    // ${PARAMS.distractor_bonus_rate} cents for each correct answer!
+  let distractor_task = {
+    type: 'math',
+    maxTime: 3,
+    numQuestions: 10,
+    bonusRate: 1,
   }
-
-  let math_feedback = {
-    stimulus() {
-      let responses = JSON.parse(jsPsych.data.get().last(1).values()[0].responses)
-      let n_correct = _.range(3).map(i => responses["Q"+i] == math_answers[i]).reduce((acc, x)=>acc+x)
-      let bonus = n_correct * 5
-      BONUS += bonus
-      return markdown(`
-        # Quiz results
-
-        You got ${n_correct} questions correct, so you earned $${(bonus/100).toFixed(2)}.
-      `)
-    },
-    type: "html-button-response",
-    is_html: true,
-    choices: ['Continue'],
-    button_html: '<button class="btn btn-primary btn-lg">%choice%</button>',
-  }
-  let distractor = {timeline: [math_ask, math_feedback]}
+  let distractor = {timeline: [distractor_intro, distractor_task]}
+  
 
   let multi_instruct =  `
     # Training complete
