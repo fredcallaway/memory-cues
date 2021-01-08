@@ -49,13 +49,12 @@ jsPsych.plugins["simple-recall"] = (function() {
     }
 
     let stage = $('<div>')
-    .css({
-      'text-align': 'center',
-    })
+    .css('text-align', 'center')
+    .css('margin-top', 40)
     .appendTo(display)
 
     let space = $('<div>')
-    .css('margin-top', 120)
+    .css('margin-top', 140)
     .text('press space when ready')
     .appendTo(stage)
 

@@ -161,7 +161,7 @@ async function initializeExperiment() {
     # Training complete
 
     You're now ready to test your knowledge! On each round, we will display a
-    picture you saw before along with a text box. When you're ready to guess,
+    picture you saw before. When you're ready to guess,
     press space. A text box will appear and you'll have five seconds to type
     the word. Hit enter to submit, and the next trial will begin.
 
