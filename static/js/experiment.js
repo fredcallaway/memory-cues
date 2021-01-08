@@ -15,13 +15,14 @@ var BONUS = 0
 searchParams = new URLSearchParams(location.search)
 updateExisting(PARAMS, mapObject(Object.fromEntries(searchParams), maybeJson))
 
-function button_trial(html) {
+function button_trial(html, opts={}) {
   return {
     stimulus: markdown(html),
     type: "html-button-response",
     is_html: true,
     choices: ['Continue'],
     button_html: '<button class="btn btn-primary btn-lg">%choice%</button>',
+    ...opts
   }
 }
 
@@ -76,19 +77,51 @@ async function initializeExperiment() {
     your knowledge and have an opportunity to earn a bonus of up to one dollar.
   `)
 
-  let distractor = {
-      type: 'survey-text',
-      preamble: markdown(`
-        # Quiz
+  let math_questions = [], math_answers = []
+  _.range(3).forEach(i => {
+    let a = 10 + Math.floor(90 * Math.random())
+    let b = 10 + Math.floor(90 * Math.random())
+    math_questions.push(`${a} + ${b} = `)
+    math_answers.push(a + b)
+  })
 
-        Please solve the following addition problems.
-      `),
-      questions: [
-        '43 + 62 =',
-        '18 + 37 =',
-        '62 + 81 =',
-      ].map(prompt => ({prompt, rows: 1, columns: 4}))
+  let math_ask = {
+    type: 'survey-text',
+    preamble: markdown(`
+      # Quiz
+
+      Please solve the following addition problems. You will earn 5 cents for
+      each correct response.
+    `),
+    questions: math_questions.map(prompt => ({prompt, rows: 1, columns: 4})),
+    on_finish: function(data){
+      console.log(data)
+      if(data.key_press == 70){// 70 is the numeric code for f
+        data.correct = true; // can add property correct by modify data object directly
+      } else {
+        data.correct = false;
+      }
     }
+  }
+
+  let math_feedback = {
+    stimulus() {
+      let responses = JSON.parse(jsPsych.data.get().last(1).values()[0].responses)
+      let n_correct = _.range(3).map(i => responses["Q"+i] == math_answers[i]).reduce((acc, x)=>acc+x)
+      let bonus = n_correct * 5
+      BONUS += bonus
+      return markdown(`
+        # Quiz results
+
+        You got ${n_correct} questions correct, so you earned $${(bonus/100).toFixed(2)}.
+      `)
+    },
+    type: "html-button-response",
+    is_html: true,
+    choices: ['Continue'],
+    button_html: '<button class="btn btn-primary btn-lg">%choice%</button>',
+  }
+  let distractor = {timeline: [math_ask, math_feedback]}
 
   let multi_instruct =  `
     # Training complete
