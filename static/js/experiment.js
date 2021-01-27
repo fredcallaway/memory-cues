@@ -8,7 +8,7 @@ const PARAMS = {
   test_type: 'simple'
 }
 
-const PROLIFIC_CODE = '3854D3C0'
+const PROLIFIC_CODE = '6BF8D28B'
 
 var BONUS = 0
 
@@ -74,16 +74,16 @@ async function initializeExperiment() {
     between images and words. In the training stage, you will view images with
     words on them. Try to make an association between the image and the word
     presented. Once the training stage is completed, you will be tested on
-    your knowledge and have an opportunity to earn a bonus of up to one dollar.
+    your knowledge and have an opportunity to earn a bonus of up to fifty cents.
   `)
 
-  let math_questions = [], math_answers = []
-  _.range(3).forEach(i => {
-    let a = 10 + Math.floor(90 * Math.random())
-    let b = 10 + Math.floor(90 * Math.random())
-    math_questions.push(`${a} + ${b} = `)
-    math_answers.push(a + b)
-  })
+  // let math_questions = [], math_answers = []
+  // _.range(3).forEach(i => {
+  //   let a = 10 + Math.floor(90 * Math.random())
+  //   let b = 10 + Math.floor(90 * Math.random())
+  //   math_questions.push(`${a} + ${b} = `)
+  //   math_answers.push(a + b)
+  // })
 
   // let math_ask = {
   //   type: 'survey-text',

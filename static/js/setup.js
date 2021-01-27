@@ -203,7 +203,7 @@ handleError = function(e) {
   }
   psiturk.recordUnstructuredData('error', msg);
   message = `<pre>\n  HitID: ${(typeof hitId !== "undefined" && hitId !== null ? hitId[0] : 'N/A')}\n  AssignId: ${(typeof assignId !== "undefined" && assignId !== null ? assignId : 'N/A')}\n  WorkerId: ${(typeof workerId !== "undefined" && workerId !== null ? workerId[0] : 'N/A')}\n\n  ${msg}\n</pre>`;
-  link = '<a href="mailto:email@bodacious.edu?subject=ERROR in experiment' + '&body=#{encodeURIComponent(message)}">Click here</a>';
-  $('#jspsych-target').html(markdown(`# The experiment encountered an error!\n\n${link} to report the error by email. Please describe at what point in the HIT the error\noccurred, and include the following\n\n${message}\n\nThen click the button below to submit the HIT.\nIf you have trouble submitting the HIT, please\ncontact <email@bodacious.edu>\n\n<button id="submit">Submit HIT</button>`));
+  link = '<a href="mailto:fredcallaway@princeton.edu?subject=ERROR in experiment' + '&body=#{encodeURIComponent(message)}">Click here</a>';
+  $('#jspsych-target').html(markdown(`# The experiment encountered an error!\n\n${link} to report the error by email. Please describe at what point in the HIT the error\noccurred, and include the following\n\n${message}\n\nThen click the button below to submit the HIT.\nIf you have trouble submitting the HIT, please\ncontact <fredcallaway@princeton.edu>\n\n<button id="submit">Submit HIT</button>`));
   return $('#submit').click(submitHit);
 };
