@@ -7,6 +7,7 @@ const PARAMS = {
   bonus_rate: 2,
   test_type: 'simple'
 }
+psiturk.recordUnstructuredData('params', PARAMS);
 
 const PROLIFIC_CODE = '6BF8D28B'
 
@@ -128,7 +129,7 @@ async function initializeExperiment() {
 
     Before you continue to the memory test phase, you will have an opportunity
     to earn some extra bonus money in a speeded math challenge. In each round,
-    you'll see a simple arithmetic problem and you'll have three seconds to 
+    you'll see a simple arithmetic problem and you'll have five seconds to 
     type in the answer (press enter to submit). You'll earn one cent
     for each correct answer!
   `)
@@ -200,13 +201,16 @@ async function initializeExperiment() {
 
   let debrief = {
     type: 'survey-text',
-    preamble: () => markdown(`
-      # Study complete
+    preamble: () => {
+      psiturk.recordUnstructuredData('bonus', BONUS / 100);
+      return markdown(`
+        # Study complete
 
-      Thanks for participating! You earned a bonus of $${(BONUS / 100).toFixed(2)}.
-      Please provide feedback on the study below.
-      You can leave a box blank if you have no relevant comments.
-    `),
+        Thanks for participating! You earned a bonus of $${(BONUS / 100).toFixed(2)}.
+        Please provide feedback on the study below.
+        You can leave a box blank if you have no relevant comments.
+      `)
+    },
     questions: [
       'Were the instructions confusing, hard to understand, or too long?',
       'Was the interface at all difficult to use?',
