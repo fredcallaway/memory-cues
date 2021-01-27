@@ -39,10 +39,11 @@ jsPsych.plugins["math"] = (function() {
     var numCorrect = 0;
 
     var displayFeedback = function(correct) {
-      var response = `Correct!<br>+${trial.bonusRate}¢`;
-      if (!correct) {
-        response = "Incorrect"
-      }
+      var response = {
+        true: `Correct!<br>+${trial.bonusRate}¢`,
+        false: 'Incorrect',
+        timeout: 'Timeout (press enter to submit!)',
+      }[correct];
       stage.html('');
       stage.append("<p class='math-message'>" + response + "</p>");
     }
@@ -71,11 +72,11 @@ jsPsych.plugins["math"] = (function() {
 
         $("#jspsych-questions").append('<div id="quest-holder"></div>');
         $("#quest-holder").append('<p class="jspsych-survey-text">' + question + '</p>');
-        $("#quest-holder").append('<input id="given-answer" type="text" autofocus/>');
+        $("#quest-holder").append('<input autocomplete="off" id="given-answer" type="text" autofocus/>');
         $('#given-answer').focus();
 
         var timeout = setTimeout(function() {
-          displayFeedback(false);
+          displayFeedback('timeout');
         }, trial.maxTime * 1000);
 
         $("#quest-holder").keypress(function(event){

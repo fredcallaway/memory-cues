@@ -200,7 +200,7 @@ async function initializeExperiment() {
 
   let debrief = {
     type: 'survey-text',
-    preamble: markdown(`
+    preamble: () => markdown(`
       # Study complete
 
       Thanks for participating! You earned a bonus of $${(BONUS / 100).toFixed(2)}.
