@@ -157,14 +157,15 @@ async function initializeExperiment() {
     You'll earn ${PARAMS.bonus_rate} cents for each correct response you give!
     Click continue to try a practice trial.
   `
+    // When you're ready to guess,
+    // press space. A text box will appear and you'll have five seconds to type
+    // the word. Hit enter to submit, and the next trial will begin.
 
   let simple_instruct = `
     # Training complete
 
     You're now ready to test your knowledge! On each round, we will display a
-    picture you saw before. When you're ready to guess,
-    press space. A text box will appear and you'll have five seconds to type
-    the word. Hit enter to submit, and the next trial will begin.
+    picture you saw before and you'll type in the word that was paired with the image.
 
     You'll earn ${PARAMS.bonus_rate} cents for each correct response you give!
     Click continue to try a practice trial.

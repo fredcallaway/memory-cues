@@ -22,11 +22,11 @@ jsPsych.plugins["simple-recall"] = (function() {
     `
       ### Practice round
 
-      - Hit space. An image will appear.
-      - As soon as you remember the word for this image, press space again.
-      - Type the word into the text box and hit enter.
+      - Hit space. An image and text box will appear.
+      - Type the word that was paired with the image into the text box.
+      - Hit enter.
     ` : `
-      ### Round ${idx+1}/19
+      ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
       #### Current bonus: $${(BONUS / 100).toFixed(2)}
     `
@@ -41,6 +41,7 @@ jsPsych.plugins["simple-recall"] = (function() {
     let start_time = performance.now();
 
     function log(event, info) {
+      console.log(event, info)
       data.events.push({
         time: performance.now() - start_time,
         event,
@@ -59,6 +60,8 @@ jsPsych.plugins["simple-recall"] = (function() {
     .appendTo(stage)
 
     await getKeyPress(['space'])
+    await sleep()  // this prevents the space from being logged as a key press
+
     log('show image')
     space.remove()
     let img = $('<img>', {
@@ -68,7 +71,7 @@ jsPsych.plugins["simple-recall"] = (function() {
     })
     .appendTo(stage);
 
-    await getKeyPress(['space'])
+    // await getKeyPress(['space'])
     log('begin response')
     let input_div = $('<div/>').appendTo(stage);
     let input = $('<input />')
@@ -77,10 +80,17 @@ jsPsych.plugins["simple-recall"] = (function() {
       width: SIZE - 40
     })
     .appendTo(input_div)
+    .keydown(function(event) {
+      let key = event.keyCode || event.charCode;
+      if( key == 8 || key == 46 ) {
+          log('backspace')
+      }
+    })
     .focus()
     .keypress(function(event) {
-      log('type', {input: input.val()});
-      if (event.keyCode == 13 || event.which == 13) {
+      console.log(event.key)
+      log('type', {key: event.key, input: input.val()});
+      if (event.keyCode == 13 || event.which == 13) {  // ]ress enter
         let response = input.val().trim().toLowerCase();
         log('response', {word, response});
         console.log(data);
