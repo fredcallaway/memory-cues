@@ -1,6 +1,9 @@
 import os
 from PIL import Image
 import json
+import pandas as pd
+
+# %% ==================== Images ====================
 
 def resize(image_pil, width, height):
     '''
@@ -77,33 +80,56 @@ def resize_and_crop(img, size, crop_type='middle'):
                 Image.ANTIALIAS)
     return img
 
-# %% --------
-os.system('rm -rf static/stimuli')
+def write_images():
+    image_paths = {}
+    os.system('rm -rf ../static/stimuli/images')
+    for cat in os.listdir('image_stimuli'):
+        if cat == '.DS_Store':
+            continue
+        os.makedirs(f'../static/stimuli/images/{cat}')
+        image_paths[cat] = []
+        for i, fn in enumerate(os.listdir(f'image_stimuli/{cat}')):
+            img = Image.open(f'image_stimuli/{cat}/{fn}')
+            new = resize_and_crop(img, (300, 300))
+            path = f'../static/stimuli/images/{cat}/{fn}'
+            image_paths[cat].append(path)
+            new.save(path)
+    return image_paths
 
-image_paths = {}
-for cat in os.listdir('image_stimuli'):
-    os.makedirs(f'static/stimuli/images/{cat}')
-    image_paths[cat] = []
-    for i, fn in enumerate(os.listdir(f'image_stimuli/{cat}')):
-        img = Image.open(f'image_stimuli/{cat}/{fn}')
-        new = resize_and_crop(img, (300, 300))
-        path = f'static/stimuli/images/{cat}/{fn}'
-        image_paths[cat].append(path)
-        new.save(path)
+# %% ==================== Words ====================
+# from figures import Figures
+# import matplotlib.pyplot as plt
+# import seaborn as sns
+# show = Figures(watch=True).show
 
-image_paths
-# %% --------
-def get_words(path):
-    with open(path) as f:
-        return [w.strip() for w in f.readlines()]
+# def get_words(path):
+#     get_words('word_stimuli/low_mem_words.txt')
+#     get_words('word_stimuli/high_mem_words.txt')
+#     with open(path) as f:
+#         return [w.strip() for w in f.readlines()]
 
+def get_words():
+    df = pd.read_csv('Madan_pRecall_database.csv')
 
-with open('static/stimuli/stimuli.json', 'w+') as f:
-    json.dump({
-        'words': {
-            'low': get_words('word_stimuli/high_mem_words.txt'),
-            'high': get_words('word_stimuli/low_mem_words.txt')
-        },
-        'images': image_paths,
-    }, f)
+    thresh = df.pRecall.median()
+    low = df.query('pRecall < @thresh').sort_values('Concreteness').iloc[:50]
+    high = df.query('Concreteness == 5').sort_values('pRecall').iloc[-50:]
 
+    return list(low.word.str.lower()), list(high.word.str.lower())
+
+# %% ====================  ====================
+
+def main():
+    low, high = get_words()
+    image_paths = write_images()
+    with open('../static/stimuli/stimuli.json', 'w+') as f:
+        json.dump({
+            'words': {
+                'low': low,
+                'high': high,
+            },
+            'images': image_paths,
+        }, f)
+
+if __name__ == '__main__':
+    main()
