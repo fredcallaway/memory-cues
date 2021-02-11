@@ -1,7 +1,8 @@
 const PARAMS = {
   train_presentation_duration: 3000,
+  recall_time: 10000,
   n_pair: 10,
-  n_repeat: 5,
+  n_repeat: 3,
   overlay: true,
   // n_test: 2,
   bonus_rate: 2,
@@ -165,7 +166,8 @@ async function initializeExperiment() {
     # Training complete
 
     You're now ready to test your knowledge! On each round, we will display a
-    picture you saw before and you'll type in the word that was paired with the image.
+    picture you saw before and you'll have ${PARAMS.recall_time} seconds to
+    enter the word that was paired with the image.
 
     You'll earn ${PARAMS.bonus_rate} cents for each correct response you give!
     Click continue to try a practice trial.
@@ -188,6 +190,7 @@ async function initializeExperiment() {
   let test_practice = {
     type: `${PARAMS.test_type}-recall`,
     bonus: PARAMS.bonus_rate,
+    recall_time: PARAMS.recall_time,
     practice: true,
     timeline: [test_trials.pop()]
   };
@@ -195,6 +198,7 @@ async function initializeExperiment() {
   let test_block = {
     type: `${PARAMS.test_type}-recall`,
     bonus: PARAMS.bonus_rate,
+    recall_time: PARAMS.recall_time,
     timeline: test_trials.map((trial, idx) => {
       return {...trial, idx}
     })

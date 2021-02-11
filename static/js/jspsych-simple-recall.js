@@ -16,15 +16,16 @@ jsPsych.plugins["simple-recall"] = (function() {
   plugin.trial = async function(display_element, trial) {
     // console.log('begin simple-recall trial', trial)
     let display = $(display_element);
-    let {word, image, practice, bonus, idx} = trial;
+    let {word, image, practice, bonus, idx, recall_time} = trial;
 
     let header = practice ?
     `
       ### Practice round
 
-      - Hit space. An image and text box will appear.
+      - Hit space. An image, text box, and timer will appear.
       - Type the word that was paired with the image into the text box.
-      - Hit enter.
+      - Hit enter to submit your response.
+      - Make sure to respond before the timer hits zero!
     ` : `
       ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
@@ -49,10 +50,30 @@ jsPsych.plugins["simple-recall"] = (function() {
       });
     }
 
+
     let stage = $('<div>')
     .css('text-align', 'center')
     .css('margin-top', 40)
     .appendTo(display)
+
+    function showFeedback(text) {
+      stage.empty()
+      let fb = $('<div>')
+      .css('font-size', '32pt')
+      .css('font-weight', 'bold')
+      .css('margin-top', 120)
+      .appendTo(stage)
+
+      sleep(1500)
+      .then(()=> {
+        display.empty()
+        jsPsych.finishTrial(data)
+      })
+      return fb
+    }
+
+    function finishTrial() {
+    }
 
     let space = $('<div>')
     .css('margin-top', 140)
@@ -74,51 +95,48 @@ jsPsych.plugins["simple-recall"] = (function() {
     // await getKeyPress(['space'])
     log('begin response')
     let input_div = $('<div/>').appendTo(stage);
+
+    // INPUT
     let input = $('<input />')
     .css({
       'margin-top': 30,
       width: SIZE - 40
     })
     .appendTo(input_div)
+    .focus()
     .keydown(function(event) {
       let key = event.keyCode || event.charCode;
       if( key == 8 || key == 46 ) {
           log('backspace')
       }
     })
-    .focus()
     .keypress(function(event) {
       console.log(event.key)
       log('type', {key: event.key, input: input.val()});
-      if (event.keyCode == 13 || event.which == 13) {  // ]ress enter
+      if (event.keyCode == 13 || event.which == 13) {  // press enter
+
         let response = input.val().trim().toLowerCase();
         log('response', {word, response});
-        console.log(data);
-        stage.empty()
-
-        let fb = $('<div>')
-        .css('font-size', '32pt')
-        .css('font-weight', 'bold')
-        .css('margin-top', 120)
-        .appendTo(stage)
-          
-        if (response == word) {
-          fb.text(`Correct! +${bonus}¢`).css('color', '#080')
-        } else {
-          fb.text('Incorrect').css('color', '#b00')
-        }
 
         if (response == word || practice) {
           BONUS += bonus
         }
 
-        sleep(1000)
-        .then(()=> {
-          display.empty()
-          jsPsych.finishTrial(data)
-        })
+        if (response == word) {
+          showFeedback().text(`Correct! +${bonus}¢`).css('color', '#080')
+        } else {
+          showFeedback().text('Incorrect').css('color', '#b00')
+        }
       }
     });
+
+    // TIMER
+    let timer = makeTimer(recall_time / 1000, stage)
+    timer.then(() => {
+      log('timeout')
+      showFeedback().text('Timeout').css('color', '#b00')
+    })
+
     
   } // plugin.trial
 
