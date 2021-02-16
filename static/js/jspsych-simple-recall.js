@@ -72,9 +72,6 @@ jsPsych.plugins["simple-recall"] = (function() {
       return fb
     }
 
-    function finishTrial() {
-    }
-
     let space = $('<div>')
     .css('margin-top', 140)
     .text('press space when ready')
