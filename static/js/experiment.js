@@ -166,7 +166,7 @@ async function initializeExperiment() {
     # Training complete
 
     You're now ready to test your knowledge! On each round, we will display a
-    picture you saw before and you'll have ${PARAMS.recall_time} seconds to
+    picture you saw before and you'll have ${PARAMS.recall_time / 1000} seconds to
     enter the word that was paired with the image.
 
     You'll earn ${PARAMS.bonus_rate} cents for each correct response you give!

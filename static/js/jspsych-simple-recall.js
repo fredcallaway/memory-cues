@@ -56,7 +56,7 @@ jsPsych.plugins["simple-recall"] = (function() {
     .css('margin-top', 40)
     .appendTo(display)
 
-    function showFeedback(text) {
+    function showFeedback() {
       stage.empty()
       let fb = $('<div>')
       .css('font-size', '32pt')
@@ -89,8 +89,10 @@ jsPsych.plugins["simple-recall"] = (function() {
     })
     .appendTo(stage);
 
+
     // await getKeyPress(['space'])
     log('begin response')
+    var responded = false
     let input_div = $('<div/>').appendTo(stage);
 
     // INPUT
@@ -111,7 +113,7 @@ jsPsych.plugins["simple-recall"] = (function() {
       console.log(event.key)
       log('type', {key: event.key, input: input.val()});
       if (event.keyCode == 13 || event.which == 13) {  // press enter
-
+        responded = true  // disable timeout
         let response = input.val().trim().toLowerCase();
         log('response', {word, response});
 
@@ -130,8 +132,10 @@ jsPsych.plugins["simple-recall"] = (function() {
     // TIMER
     let timer = makeTimer(recall_time / 1000, stage)
     timer.then(() => {
-      log('timeout')
-      showFeedback().text('Timeout').css('color', '#b00')
+      if (!responded) {
+        log('timeout')
+        showFeedback().text('Timeout').css('color', '#b00')
+      }
     })
 
     
