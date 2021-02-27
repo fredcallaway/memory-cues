@@ -96,7 +96,7 @@ def reformat_data(version):
                 row = ast.literal_eval(list(df[df[1] == 'params'][2])[0])
             except:
                 row = {}
-
+            
             worker_id, assignment_id = uid.split(':')
             identifiers['worker_id'].append(worker_id)
             identifiers['assignment_id'].append(assignment_id)
@@ -164,8 +164,8 @@ def reformat_data(version):
 
 def main(version, address, username, password):
     files = ["trialdata", "eventdata", "questiondata"]
-    # for filename in files:
-        # fetch(address, filename, version, HTTPBasicAuth(username, password))
+    for filename in files:
+        fetch(address, filename, version, HTTPBasicAuth(username, password))
     reformat_data(version)
 
 

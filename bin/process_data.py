@@ -3,49 +3,77 @@ import pandas as pd
 import os
 from ast import literal_eval
 from fire import Fire
+import json
+# import nltk
+# nltk.download('wordnet')
+from nltk.stem.wordnet import WordNetLemmatizer
+lemmatize = WordNetLemmatizer().lemmatize
 
-def read_word_list(kind):
-    with open(f'word_stimuli/{kind}_mem_words.txt') as f:
-        return f.read().strip().split('\n')
+def load_words():
+    stimuli = json.load(open('static/stimuli/stimuli.json'))
+    return {kind: set(map(lemmatize, words)) 
+            for kind, words in stimuli['words'].items()}
 
-WORDS = {kind: set(read_word_list(kind)) for kind in ['high', 'low']}
+WORDS = load_words()
 ALL_WORDS = set.union(*WORDS.values())
 
 def classify_word(word):
     for k in 'low', 'high':
-        if word in WORDS[k]:
+        if lemmatize(word) in WORDS[k]:
             return k
     raise ValueError('Bad word: ' + word)
 
 def classify_response(word, response):
-    if word == response:
+    if response == '':
+        return 'empty'
+    possible_intents = set(map(lemmatize, spell.candidates(response)))
+    if lemmatize(word) in possible_intents:
         return 'correct'
-    elif word in ALL_WORDS:
+    elif any(w in possible_intents for w in ALL_WORDS):
         return 'intrusion'
     else:
         return 'other'
 
+from spellchecker import SpellChecker
+spell = SpellChecker()
+spell.word_frequency.load_words(['bluejay'])  # add any unknown words
+for w in ALL_WORDS:
+    assert spell.candidates(w) == {w}, w
+    assert classify_response(w, w), w
+
+
 def parse_trial(row):
     ev = literal_eval(row.events)
-    x = {'wid': row.wid}
+    t = literal_eval(row.trial)
+    x = {'wid': row.wid, 'word': t['word'], 'image': t['image'], 'practice': t.get('practice', False)}
+    x['word_type'] = classify_word(x['word'])
+
+    # import IPython, time; IPython.embed(); time.sleep(0.5)
+    import IPython, time; IPython.embed(); time.sleep(0.5)
+
     for e in ev:
+        # if e['event'] == 'start trial':
         if e['event'] == 'show image':
             start = e['time']
         elif e['event'] == 'begin response':
             begin_response = e['time']
             x['rt'] = round(begin_response - start)
+        elif e['event'] == 'type' and e['input'].strip() != '' and 'typing_rt' not in x:
+            x['typing_rt'] = round(e['time'] - start)
         elif e['event'] == 'response':
-            x['word'] = e['word']
-            x['word_type'] = classify_word(e['word'])
-            x['response_type'] = classify_response(e['word'], e['response'])
             x['response'] = e['response']
             x['type_time'] = e['time'] - begin_response
-
-    return x
+            x['response_type'] = classify_response(x['word'], e['response'])
+            return x
+        elif e['event'] == 'timeout':
+            x['response_type'] = 'timeout'
+            return x
+    assert False
 
 def main(codeversion):
     out = f'data/processed/{codeversion}/'
-    
+    os.makedirs(out, exist_ok=True)
+
     def load_raw(kind):
         return  pd.read_csv(f'data/human/{codeversion}/{kind}.csv').dropna(axis=1)
 
