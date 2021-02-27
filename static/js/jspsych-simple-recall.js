@@ -115,7 +115,7 @@ jsPsych.plugins["simple-recall"] = (function() {
       if (event.keyCode == 13 || event.which == 13) {  // press enter
         responded = true  // disable timeout
         let response = input.val().trim().toLowerCase();
-        log('response', {word, response});
+        log('response', {response});
 
         if (response == word || practice) {
           BONUS += bonus

@@ -120,7 +120,6 @@ def get_words():
 # %% ====================  ====================
 
 def main():
-    low, high = get_words()
     image_paths = write_images()
     with open('../static/stimuli/stimuli.json', 'w+') as f:
         json.dump({

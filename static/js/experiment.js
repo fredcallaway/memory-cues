@@ -1,21 +1,22 @@
 const PARAMS = {
   train_presentation_duration: 3000,
   recall_time: 10000,
+  afc_time: 5000,
   n_pair: 10,
   n_repeat: 3,
   overlay: true,
   // n_test: 2,
   bonus_rate: 2,
-  test_type: 'simple'
+  test_type: 'simple',
+  n_distractor: 1,
 }
+searchParams = new URLSearchParams(location.search)
+updateExisting(PARAMS, mapObject(Object.fromEntries(searchParams), maybeJson))
 psiturk.recordUnstructuredData('params', PARAMS);
 
 const PROLIFIC_CODE = '6BF8D28B'
-
 var BONUS = 0
-
-searchParams = new URLSearchParams(location.search)
-updateExisting(PARAMS, mapObject(Object.fromEntries(searchParams), maybeJson))
+XX = null
 
 function button_trial(html, opts={}) {
   return {
@@ -43,6 +44,7 @@ async function initializeExperiment() {
     })
   })
   let all_pairs = pairs.low.concat(pairs.high)
+  XX = all_pairs
 
   let train_trials = all_pairs.map(({image, word}) => {
     let stimulus = PARAMS.overlay ? `
@@ -60,6 +62,23 @@ async function initializeExperiment() {
     `
     return {stimulus};
   })
+
+  function make_afc_block() {
+    return {
+      type: '2afc',
+      max_time: PARAMS.afc_time,
+      timeline: _.chain(all_pairs)
+        .shuffle()
+        .map(({image, word}, i, arr) => ({
+          word: word,
+          target_image: image,
+          distractor_images: [arr[(i+1) % arr.length].image],
+        }))
+        .shuffle()
+        .value()
+    }
+  }
+  let afc_block = make_afc_block()
 
   let train_block = {
     type: 'html-keyboard-response',
@@ -229,6 +248,7 @@ async function initializeExperiment() {
   /////////////////////////
 
   let timeline = [
+    afc_block,
     welcome_block,
     train_block,
     distractor,
