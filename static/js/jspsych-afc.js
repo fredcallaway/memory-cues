@@ -4,7 +4,7 @@
 
 var AFC_LOG = [];
 
-jsPsych.plugins["2afc"] = (function() {
+jsPsych.plugins["afc"] = (function() {
 
   var SIZE = 300;
 

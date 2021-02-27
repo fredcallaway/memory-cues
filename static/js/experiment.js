@@ -65,7 +65,7 @@ async function initializeExperiment() {
 
   function make_afc_block() {
     return {
-      type: '2afc',
+      type: 'afc',
       max_time: PARAMS.afc_time,
       timeline: _.chain(all_pairs)
         .shuffle()
