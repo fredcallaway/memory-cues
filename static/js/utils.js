@@ -29,7 +29,7 @@ function getKeyPress(options) {
 };
 
 async function makeTimer(seconds, div) {
-  let span = $('<span/>')
+  let span = $('<span/>', {class: 'timer'})
   .css('font-size', 30)
   .css('font-weight', 'bold')
   .appendTo(div)

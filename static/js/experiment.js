@@ -1,12 +1,13 @@
 const PARAMS = {
   train_presentation_duration: 3000,
   recall_time: 10000,
-  afc_time: 5000,
+  afc_time: 3000,
   n_pair: 10,
   n_repeat: 3,
   overlay: true,
   // n_test: 2,
   bonus_rate: 2,
+  bonus_rate_afc: 1,
   test_type: 'simple',
   n_distractor: 1,
 }
@@ -46,6 +47,15 @@ async function initializeExperiment() {
   let all_pairs = pairs.low.concat(pairs.high)
   XX = all_pairs
 
+  let welcome_block = button_trial(`
+    # Instructions
+
+    In this experiment, you will play a memory game where you learn pairings
+    between images and words. You will do a total of four rounds learning the pairs
+    and testing your knowledge. In each test round, you can earn a bonus, up to a total
+    of $1.50.
+  `)
+
   let train_trials = all_pairs.map(({image, word}) => {
     let stimulus = PARAMS.overlay ? `
       <div class="image-container">
@@ -63,86 +73,64 @@ async function initializeExperiment() {
     return {stimulus};
   })
 
-  function make_afc_block() {
-    return {
+  function make_train_block(i) {
+    let intro = button_trial(`
+      # Training (${i+1} / ${PARAMS.n_repeat})
+
+      You will see a series of images with words printed on top. Try to
+      commit each pair to memory. You will be tested on them later.
+      Note: the pairs are the same for the entire experiment.
+    `)
+    let block = {
+      type: 'html-keyboard-response',
+      stimulus_duration: PARAMS.train_presentation_duration,
+      trial_duration:  PARAMS.train_presentation_duration + 500,
+      choices: [],
+      timeline: _.shuffle(train_trials)
+    }
+    return {timeline: [intro, block]}
+  }
+
+  function make_afc_block(i) {
+    let intro = button_trial(`
+      # Test (${i+1} / ${PARAMS.n_repeat})
+
+      Now we'll see how well you've learned the pairs. On each round,
+      you will see a word and two images. Then you'll have ${PARAMS.afc_time / 1000} 
+      seconds to select the image that goes with the pair.
+
+      You will earn one cent for each correct answer. However, to make things
+      harder, we won't tell you which ones were correct! 😉
+    ` + ((i == 0) ? "We'll start with a practice round." : ""))
+    let timeline = _.chain(all_pairs)
+      .shuffle()
+      .map(({image, word}, i, arr) => ({
+        word: word,
+        target_image: image,
+        distractor_images: [arr[(i+1) % arr.length].image],
+      }))
+      .shuffle()
+      .value()
+    if (i == 0) timeline[0].practice = true
+    let block = {
       type: 'afc',
       max_time: PARAMS.afc_time,
-      timeline: _.chain(all_pairs)
-        .shuffle()
-        .map(({image, word}, i, arr) => ({
-          word: word,
-          target_image: image,
-          distractor_images: [arr[(i+1) % arr.length].image],
-        }))
-        .shuffle()
-        .value()
+      timeline
     }
+    let feedback = button_trial(`
+      # Results
+
+      You answered ...
+    `)
+    return {timeline: [intro, block, feedback]}
   }
-  let afc_block = make_afc_block()
 
-  let train_block = {
-    type: 'html-keyboard-response',
-    stimulus_duration: PARAMS.train_presentation_duration,
-    trial_duration:  PARAMS.train_presentation_duration + 500,
-    choices: [],
-    timeline: _.range(PARAMS.n_repeat).reduce(acc => acc.concat(_.shuffle(train_trials)), [])
-  };
+  let train_afc_blocks = []
+  _.range(PARAMS.n_repeat).forEach(i => {
+    train_afc_blocks.push(make_train_block(i))
+    train_afc_blocks.push(make_afc_block(i))
+  })
 
-  let welcome_block = button_trial(`
-    # Instructions
-
-    In this experiment, you will play a memory game where you learn pairings
-    between images and words. In the training stage, you will view images with
-    words on them. Try to make an association between the image and the word
-    presented. Once the training stage is completed, you will be tested on
-    your knowledge and have an opportunity to earn a bonus of up to fifty cents.
-  `)
-
-  // let math_questions = [], math_answers = []
-  // _.range(3).forEach(i => {
-  //   let a = 10 + Math.floor(90 * Math.random())
-  //   let b = 10 + Math.floor(90 * Math.random())
-  //   math_questions.push(`${a} + ${b} = `)
-  //   math_answers.push(a + b)
-  // })
-
-  // let math_ask = {
-  //   type: 'survey-text',
-  //   preamble: markdown(`
-  //     # Quiz
-
-  //     Please solve the following addition problems. You will earn 5 cents for
-  //     each correct response.
-  //   `),
-  //   questions: math_questions.map(prompt => ({prompt, rows: 1, columns: 4})),
-  //   on_finish: function(data){
-  //     console.log(data)
-  //     if(data.key_press == 70){// 70 is the numeric code for f
-  //       data.correct = true; // can add property correct by modify data object directly
-  //     } else {
-  //       data.correct = false;
-  //     }
-  //   }
-  // }
-
-  // let math_feedback = {
-  //   stimulus() {
-  //     let responses = JSON.parse(jsPsych.data.get().last(1).values()[0].responses)
-  //     let n_correct = _.range(3).map(i => responses["Q"+i] == math_answers[i]).reduce((acc, x)=>acc+x)
-  //     let bonus = n_correct * 5
-  //     BONUS += bonus
-  //     return markdown(`
-  //       # Quiz results
-
-  //       You got ${n_correct} questions correct, so you earned $${(bonus/100).toFixed(2)}.
-  //     `)
-  //   },
-  //   type: "html-button-response",
-  //   is_html: true,
-  //   choices: ['Continue'],
-  //   button_html: '<button class="btn btn-primary btn-lg">%choice%</button>',
-  // }
-  // let distractor = {timeline: [math_ask, math_feedback]}
 
   let distractor_intro = button_trial(`
     # Math challenge
@@ -248,9 +236,9 @@ async function initializeExperiment() {
   /////////////////////////
 
   let timeline = [
-    afc_block,
     welcome_block,
-    train_block,
+    ...train_afc_blocks,
+    // train_block,
     distractor,
     test_instruct,
     test_practice,

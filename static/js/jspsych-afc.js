@@ -2,13 +2,13 @@
  * Example plugin template
  */
 
-var AFC_LOG = [];
+var AFC_LOG = []
 
 jsPsych.plugins["afc"] = (function() {
 
-  var SIZE = 300;
+  var SIZE = 300
 
-  var plugin = {};
+  var plugin = {}
   
   plugin.info = {
     name: "PLUGIN-NAME",
@@ -18,21 +18,26 @@ jsPsych.plugins["afc"] = (function() {
   plugin.trial = async function(display_element, trial) {
     console.log('begin simple-recall trial', trial)
     let display = $(display_element);
-    let {word, target_image, distractor_images, max_time} = trial;
+    let {word, target_image, distractor_images, max_time, practice=false} = trial;
 
-    // let header = practice ?
-    // `
-    //   ### Practice round
+    let header = practice ?
+    `
+      ### Practice round
 
-    //   TODO
-    // ` : `
-    //   ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
+      - Hit space. A word and two images will appear.
+      - Press the key (**F** or **J**) associated with the image that was paired with the given word.
+      - Make sure to respond before the timer hits zero!
+      - Normally you'll have ${max_time/1000} seconds to respond. But for this practice round we'll give
+        you 30 seconds.
+    ` : ` `
+      // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
-    //   #### Current bonus: $${(BONUS / 100).toFixed(2)}
-    // `
-    // $('<div>')
-    // .html(markdown(header))
-    // .appendTo(display);
+      // #### Current bonus: $${(BONUS / 100).toFixed(2)}
+    $('<div>')
+    .html(markdown(header))
+    .appendTo(display);
+
+    if (practice) max_time = 30000
 
     let data = {
       trial,
@@ -54,50 +59,61 @@ jsPsych.plugins["afc"] = (function() {
     .css('margin-top', 40)
     .appendTo(display)
 
-    let btn = $('<button>')
-    .text('start')
-    .css('margin-top', 170)
-    .appendTo(stage)
-    await new Promise(resolve => btn.click(resolve))
-    stage.empty()
+    function showFeedback() {
+      stage.empty()
+      let fb = $('<div>')
+      .css('font-size', '32pt')
+      .css('font-weight', 'bold')
+      .css('margin-top', 120)
+      .appendTo(stage)
 
-    // let space = $('<div>')
-    // .css('margin-top', 140)
-    // .text('press space when ready')
-    // .appendTo(stage)
-    // await getKeyPress(['space'])
-    // space.remove()
-    // await sleep()  // this prevents the space from being logged as a key press
+      sleep(1500)
+      .then(()=> {
+        display.empty()
+        jsPsych.finishTrial(data)
+      })
+      return fb
+    }
+
+    let space = $('<div>')
+    .css('margin-top', 140)
+    .text('press space when ready')
+    .appendTo(stage)
+    await getKeyPress(['space'])
+    space.remove()
+    await sleep(30)  // this prevents the space from being logged as a key press
 
     log('show word')
-    let h2 = $('<h2>')
+    let h2 = $('<h1>')
     // .css('font-size', '20pt')
     .text(word)
     .appendTo(stage)
 
-    let show_time = performance.now()
+    // display images
     let img_container = $('<div>')
     .css('margin', '20px 0px 50px')
+    .css('display', 'flex')
     .appendTo(stage)
+
+    let keys = ['F', 'J'] 
     let all_imgs = distractor_images.concat([target_image])
-    console.log(distractor_images, [target_image])
-    all_imgs.forEach(img => {
-      console.log(img)
-      $('<img>', {src: img, width: SIZE, height: SIZE})
-      .css('margin', '20px')
+    let key2img = {}
+    _.zip(keys, all_imgs).forEach(([key, img]) => {
+      let div = $('<div>')
+      // .css('float', 'left')
+      .css('margin', 'auto')
       .appendTo(img_container)
-      .click(() => {
-        let correct = img == target_image
-        let rt = performance.now() - show_time
-        log('respond', {word, img, correct, rt})
-        AFC_LOG.push({word, correct, rt})
-        display.empty()
-        jsPsych.finishTrial(data)
-      })
+      
+      $('<img>', {id: `img-${key}`, src: img, width: SIZE, height: SIZE})
+      .css('margin', '20px')
+      .appendTo(div)
+      
+      $('<h3>').text(key).appendTo(div)
+      key2img[key] = img
     })
 
-    // TIMER
-    let timer = makeTimer(max_time / 1000, stage)
+    responded = false
+    let timer = makeTimer(max_time / 1000, $("<div>").appendTo(stage))
     timer.then(() => {
       if (!responded) {
         log('timeout')
@@ -105,6 +121,21 @@ jsPsych.plugins["afc"] = (function() {
       }
     })
 
+    let {key, rt} = await getKeyPress(keys)
+    responded = true
+    $(`#img-${key}`)
+    .css({
+      'outline': '10px solid #FFDD47',
+      'outline-offset': '-10px' //keeping it inside
+    })
+    $('.timer').remove()
+    let response = key2img[key]
+    let correct = response == target_image
+    log('response', {response, rt, key, correct})
+    AFC_LOG.push({word, correct, rt})
+    await sleep(1000)
+    display.empty()
+    jsPsych.finishTrial(data)
     
   } // plugin.trial
 
