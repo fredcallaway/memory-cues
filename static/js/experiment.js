@@ -4,7 +4,7 @@ const PARAMS = {
 
   train_presentation_duration: 3000,
   recall_time: 10000,
-  afc_time: 3000,
+  afc_time: 5000,
   
   n_pair: 10,
   n_repeat: 3,
@@ -13,6 +13,7 @@ const PARAMS = {
   bonus_rate_critical: 2,
   bonus_rate_afc: 1,
   bonus_rate_distractor: 1,
+  bonus_rate_speed: 0.25,
 }
 searchParams = new URLSearchParams(location.search)
 updateExisting(PARAMS, mapObject(Object.fromEntries(searchParams), maybeJson))
@@ -62,7 +63,7 @@ async function initializeExperiment() {
   XX = all_pairs
 
   let max_bonus = 
-    PARAMS.bonus_rate_afc * PARAMS.n_pair * 2 * PARAMS.n_repeat +
+    (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat +
     PARAMS.bonus_rate_distractor * PARAMS.n_distractor +
     PARAMS.bonus_rate_critical * (PARAMS.test_type == 'simple' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
   
@@ -120,7 +121,11 @@ async function initializeExperiment() {
       seconds to select the image that goes with the pair.
 
       You will earn ${fmt_cents(PARAMS.bonus_rate_distractor)} for each
-      correct answer. However, to make things harder, we won't tell you which
+      correct answer. You will also receive a small extra bonus for answering
+      quickly (and correctly), so try to respond as fast as you can
+      (while staying accurate)!
+
+      However, to make things harder, we won't tell you which
       ones were correct! 😉
     ` + ((i == 0) ? "We'll start with a practice round." : ""))
     
@@ -136,21 +141,33 @@ async function initializeExperiment() {
     if (i == 0) timeline[0].practice = true
     
     var n_correct = 0
+    var time_bonus = 0
     let block = {
       type: 'afc',
       max_time: PARAMS.afc_time,
+      bonus_rate: PARAMS.bonus_rate_afc,
       timeline,
       on_finish: data => {
         n_correct += data.correct
+        if (data.correct) {
+          let prop_left = (PARAMS.afc_time - data.rt) / PARAMS.afc_time
+          time_bonus += prop_left * PARAMS.bonus_rate_speed
+        }
       }
     }
     
-    let feedback = button_trial(() => `
-      # Results
+    let feedback = button_trial(() => {
+      time_bonus = Math.ceil(time_bonus)
+      BONUS += time_bonus
+      return `
+        # Results
 
-      You were correct on ${n_correct} out of ${block.timeline.length} rounds.
-      Your current bonus is ${fmt_bonus()}.
-    `)
+        - You were correct on ${n_correct} out of ${block.timeline.length} rounds. 
+           That's ${fmt_cents(n_correct * PARAMS.bonus_rate_afc)} added to your bonus.
+        - You earned ${fmt_cents(time_bonus)} for responding quickly.
+        - Your current bonus is ${fmt_bonus()}.
+      `
+    })
     return {timeline: [intro, block, feedback]}
   }
 
