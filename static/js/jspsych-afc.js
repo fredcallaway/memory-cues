@@ -18,7 +18,7 @@ jsPsych.plugins["afc"] = (function() {
   plugin.trial = async function(display_element, trial) {
     console.log('begin simple-recall trial', trial)
     let display = $(display_element);
-    let {word, target_image, distractor_images, max_time, practice=false} = trial;
+    let {word, target_image, lure_images, max_time, practice=false} = trial;
 
     let header = practice ?
     `
@@ -41,7 +41,7 @@ jsPsych.plugins["afc"] = (function() {
 
     let data = {
       trial,
-      events: []
+      events: [],
     };
     let start_time = performance.now();
 
@@ -96,7 +96,7 @@ jsPsych.plugins["afc"] = (function() {
     .appendTo(stage)
 
     let keys = ['F', 'J'] 
-    let all_imgs = distractor_images.concat([target_image])
+    let all_imgs = _.shuffle(lure_images.concat([target_image]))
     let key2img = {}
     _.zip(keys, all_imgs).forEach(([key, img]) => {
       let div = $('<div>')
@@ -117,6 +117,7 @@ jsPsych.plugins["afc"] = (function() {
     timer.then(() => {
       if (!responded) {
         log('timeout')
+        data.correct = false
         showFeedback().text('Timeout').css('color', '#b00')
       }
     })
@@ -131,10 +132,13 @@ jsPsych.plugins["afc"] = (function() {
     $('.timer').remove()
     let response = key2img[key]
     let correct = response == target_image
-    log('response', {response, rt, key, correct})
+    if (correct || practice) BONUS += 1
+    log('response', {response, key})
     AFC_LOG.push({word, correct, rt})
     await sleep(1000)
     display.empty()
+    data.correct = correct
+    data.rt = rt
     jsPsych.finishTrial(data)
     
   } // plugin.trial

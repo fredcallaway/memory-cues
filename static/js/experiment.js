@@ -1,15 +1,18 @@
 const PARAMS = {
+  test_type: 'simple',
+  overlay: true,
+
   train_presentation_duration: 3000,
   recall_time: 10000,
   afc_time: 3000,
+  
   n_pair: 10,
   n_repeat: 3,
-  overlay: true,
-  // n_test: 2,
-  bonus_rate: 2,
+  n_distractor: 10,
+  
+  bonus_rate_critical: 2,
   bonus_rate_afc: 1,
-  test_type: 'simple',
-  n_distractor: 1,
+  bonus_rate_distractor: 1,
 }
 searchParams = new URLSearchParams(location.search)
 updateExisting(PARAMS, mapObject(Object.fromEntries(searchParams), maybeJson))
@@ -17,11 +20,22 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 const PROLIFIC_CODE = '6BF8D28B'
 var BONUS = 0
+fmt_bonus = () => `$${(BONUS / 100).toFixed(2)}`
+
+function fmt_cents(cents) {
+  if (cents == 1) return 'one cent'
+  return `${cents} cents`
+}
 XX = null
 
 function button_trial(html, opts={}) {
   return {
-    stimulus: markdown(html),
+    stimulus: () => {
+      if (typeof html === 'function') {
+        html = html.call()
+      }
+      return markdown(html)
+    },
     type: "html-button-response",
     is_html: true,
     choices: ['Continue'],
@@ -47,13 +61,19 @@ async function initializeExperiment() {
   let all_pairs = pairs.low.concat(pairs.high)
   XX = all_pairs
 
+  let max_bonus = 
+    PARAMS.bonus_rate_afc * PARAMS.n_pair * 2 * PARAMS.n_repeat +
+    PARAMS.bonus_rate_distractor * PARAMS.n_distractor +
+    PARAMS.bonus_rate_critical * (PARAMS.test_type == 'simple' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
+  
   let welcome_block = button_trial(`
-    # Instructions
+    # Welcome 😃
 
     In this experiment, you will play a memory game where you learn pairings
-    between images and words. You will do a total of four rounds learning the pairs
-    and testing your knowledge. In each test round, you can earn a bonus, up to a total
-    of $1.50.
+    between images and words. You'll begin with three rounds of learning
+    and testing your knowledge. You will earn a bonus for each correct response
+    you give. Finally, you will complete two additional test rounds where
+    you can earn additional bonus money. The maximum bonus is $${(max_bonus / 100).toFixed(2)}
   `)
 
   let train_trials = all_pairs.map(({image, word}) => {
@@ -99,28 +119,37 @@ async function initializeExperiment() {
       you will see a word and two images. Then you'll have ${PARAMS.afc_time / 1000} 
       seconds to select the image that goes with the pair.
 
-      You will earn one cent for each correct answer. However, to make things
-      harder, we won't tell you which ones were correct! 😉
+      You will earn ${fmt_cents(PARAMS.bonus_rate_distractor)} for each
+      correct answer. However, to make things harder, we won't tell you which
+      ones were correct! 😉
     ` + ((i == 0) ? "We'll start with a practice round." : ""))
+    
     let timeline = _.chain(all_pairs)
       .shuffle()
       .map(({image, word}, i, arr) => ({
         word: word,
         target_image: image,
-        distractor_images: [arr[(i+1) % arr.length].image],
+        lure_images: [arr[(i+1) % arr.length].image],
       }))
       .shuffle()
       .value()
     if (i == 0) timeline[0].practice = true
+    
+    var n_correct = 0
     let block = {
       type: 'afc',
       max_time: PARAMS.afc_time,
-      timeline
+      timeline,
+      on_finish: data => {
+        n_correct += data.correct
+      }
     }
-    let feedback = button_trial(`
+    
+    let feedback = button_trial(() => `
       # Results
 
-      You answered ...
+      You were correct on ${n_correct} out of ${block.timeline.length} rounds.
+      Your current bonus is ${fmt_bonus()}.
     `)
     return {timeline: [intro, block, feedback]}
   }
@@ -135,80 +164,60 @@ async function initializeExperiment() {
   let distractor_intro = button_trial(`
     # Math challenge
 
-    Before you continue to the memory test phase, you will have an opportunity
-    to earn some extra bonus money in a speeded math challenge. In each round,
-    you'll see a simple arithmetic problem and you'll have five seconds to 
-    type in the answer (press enter to submit). You'll earn one cent
+    Before continuing to the final memory test, you can earn some extra bonus
+    money in a speeded math challenge. On each round, you'll see a simple
+    arithmetic problem and you'll have five seconds to type in the answer
+    (press enter to submit). You'll earn ${fmt_cents(PARAMS.bonus_rate_distractor)}
     for each correct answer!
   `)
     // ${PARAMS.distractor_bonus_rate} cents for each correct answer!
   let distractor_task = {
     type: 'math',
     maxTime: 3,
-    numQuestions: 10,
-    bonusRate: 1,
+    numQuestions: PARAMS.n_distractor,
+    bonusRate: PARAMS.bonus_rate_distractor,
   }
   let distractor = {timeline: [distractor_intro, distractor_task]}
-  
 
-  let multi_instruct =  `
-    # Training complete
+  let type_instruct = {
+    simple: `
+      On each round, we will display one of the pictures you saw before and
+      you'll have ${PARAMS.recall_time / 1000} seconds to type in the word that
+      was paired with the image.
+    `,
+    multi: `
+      On each round, we will display two of the pictures you saw before. They
+      will be covered by gray boxes, but you can hover over the box with your
+      mouse to show the image. You only need to remember the word associated
+      with *one* of them. When you're ready to guess, click on the image you
+      think you know the word for. A text box will appear and you'll have five
+      seconds to type the word. Hit enter to submit, and the next trial will
+      begin.
+    `
+  }[PARAMS.test_type]
 
-    You're now ready to test your knowledge! On each round, we will display two 
-    of the pictures you saw before. They will be covered by gray boxes, but you
-    can hover over the box with your mouse to show the image. You only need to
-    remember the word associated with *one* of them. When you're ready to guess,
-    click on the image you think you know the word for. A text box will appear
-    and you'll have five seconds to type the word. Hit enter to submit, and the
-    next trial will begin.
+  let test_instruct =  button_trial(`
+    # Final test
 
-    You'll earn ${PARAMS.bonus_rate} cents for each correct response you give!
-    Click continue to try a practice trial.
-  `
-    // When you're ready to guess,
-    // press space. A text box will appear and you'll have five seconds to type
-    // the word. Hit enter to submit, and the next trial will begin.
-
-  let simple_instruct = `
-    # Training complete
-
-    You're now ready to test your knowledge! On each round, we will display a
-    picture you saw before and you'll have ${PARAMS.recall_time / 1000} seconds to
-    enter the word that was paired with the image.
-
-    You'll earn ${PARAMS.bonus_rate} cents for each correct response you give!
-    Click continue to try a practice trial.
-  `
-
-  let n_round = (PARAMS.test_type == 'simple' ? PARAMS.n_pair * 2 : PARAMS.n_pair) - 1
-  let post_practice = button_trial(`
-    # Practice complete
-
-    You'll now get to test your knowledge on ${n_round} rounds. Remember, you
-    earn ${PARAMS.bonus_rate} cents for every correct response. (The practice
-    trial was a freebie, but the next ones count!)
+    You're almost done! In this last section, we will test your knowledge one
+    more time. But it will be a little different this time. ${type_instruct}
+    These rounds are harder, so you'll earn a higher bonus,
+    ${PARAMS.bonus_rate_critical} cents for each correct response you give! We'll start
+    with a practice round.
   `)
-  let test_instruct = button_trial(PARAMS.test_type == 'simple' ? simple_instruct : multi_instruct)
-
-  let test_trials = PARAMS.test_type == 'simple' ?
-    _.shuffle(pairs.low.concat(pairs.high)) :
-    _.zip(pairs.low, pairs.high).map(options => ({options}))
-
-  let test_practice = {
-    type: `${PARAMS.test_type}-recall`,
-    bonus: PARAMS.bonus_rate,
-    recall_time: PARAMS.recall_time,
-    practice: true,
-    timeline: [test_trials.pop()]
-  };
 
   let test_block = {
     type: `${PARAMS.test_type}-recall`,
-    bonus: PARAMS.bonus_rate,
+    bonus: PARAMS.bonus_rate_critical,
     recall_time: PARAMS.recall_time,
-    timeline: test_trials.map((trial, idx) => {
-      return {...trial, idx}
-    })
+    timeline: (()=>{
+      let timeline = PARAMS.test_type == 'simple' ?
+        _.shuffle(pairs.low.concat(pairs.high)) :
+        _.zip(pairs.low, pairs.high).map(options => ({options}))
+      timeline[0].practice = true
+      console.log('=>', timeline)
+      return timeline
+    })()
   }
 
   let debrief = {
@@ -218,7 +227,7 @@ async function initializeExperiment() {
       return markdown(`
         # Study complete
 
-        Thanks for participating! You earned a bonus of $${(BONUS / 100).toFixed(2)}.
+        Thanks for participating! You earned a bonus of ${fmt_bonus()}.
         Please provide feedback on the study below.
         You can leave a box blank if you have no relevant comments.
       `)
@@ -235,14 +244,13 @@ async function initializeExperiment() {
   // Experiment timeline //
   /////////////////////////
 
+  console.log(train_afc_blocks)
+
   let timeline = [
     welcome_block,
     ...train_afc_blocks,
-    // train_block,
     distractor,
     test_instruct,
-    test_practice,
-    post_practice,
     test_block,
     debrief,
   ];

@@ -16,7 +16,7 @@ jsPsych.plugins["simple-recall"] = (function() {
   plugin.trial = async function(display_element, trial) {
     // console.log('begin simple-recall trial', trial)
     let display = $(display_element);
-    let {word, image, practice, bonus, idx, recall_time} = trial;
+    let {word, image, practice=false, bonus, recall_time} = trial;
 
     let header = practice ?
     `
@@ -26,11 +26,10 @@ jsPsych.plugins["simple-recall"] = (function() {
       - Type the word that was paired with the image into the text box.
       - Hit enter to submit your response.
       - Make sure to respond before the timer hits zero!
-    ` : `
-      ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
+    ` : ` `
+      // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
-      #### Current bonus: $${(BONUS / 100).toFixed(2)}
-    `
+      // #### Current bonus: $${(BONUS / 100).toFixed(2)}
     $('<div>')
     .html(markdown(header))
     .appendTo(display);
