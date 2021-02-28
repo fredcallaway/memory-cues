@@ -112,10 +112,11 @@ jsPsych.plugins["afc"] = (function() {
       key2img[key] = img
     })
 
-    responded = false
+    var responded = false
     let timer = makeTimer(max_time / 1000, $("<div>").appendTo(stage))
     timer.then(() => {
       if (!responded) {
+        jsPsych.pluginAPI.cancelAllKeyboardResponses()
         log('timeout')
         data.correct = false
         showFeedback().text('Timeout').css('color', '#b00')
