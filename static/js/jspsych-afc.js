@@ -18,26 +18,32 @@ jsPsych.plugins["afc"] = (function() {
   plugin.trial = async function(display_element, trial) {
     console.log('begin simple-recall trial', trial)
     let display = $(display_element);
-    let {word, target_image, lure_images, max_time, practice=false} = trial;
+    let {word, target_image, lure_images, max_time=null, practice=false} = trial;
 
-    let header = practice ?
-    `
-      ### Practice round
+    let header = ""
+    if (practice) {
+      header += `
+        ### Practice round
 
-      - Hit space. A word and two images will appear.
-      - Press the key (**F** or **J**) associated with the image that was paired with the given word.
-      - Make sure to respond before the timer hits zero!
-      - Normally you'll have ${max_time/1000} seconds to respond. But for this practice round we'll give
-        you 30 seconds.
-    ` : ` `
-      // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
-
-      // #### Current bonus: $${(BONUS / 100).toFixed(2)}
+        - Hit space. A word and two images will appear.
+        - Press the key (**F** or **J**) associated with the image that was paired with the given word.
+        
+      `
+      if (max_time != null) {
+        header += `
+          - Make sure to respond before the timer hits zero!
+          - Normally you'll have ${max_time/1000} seconds to respond. But for this practice round we'll give
+            you 30 seconds.
+        `
+      }
+    }
+    // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
+    // #### Current bonus: $${(BONUS / 100).toFixed(2)}
     $('<div>')
     .html(markdown(header))
     .appendTo(display);
 
-    if (practice) max_time = 30000
+    if (max_time != null && practice) max_time = 30000
 
     let data = {
       trial,
@@ -113,15 +119,17 @@ jsPsych.plugins["afc"] = (function() {
     })
 
     var responded = false
-    let timer = makeTimer(max_time / 1000, $("<div>").appendTo(stage))
-    timer.then(() => {
-      if (!responded) {
-        jsPsych.pluginAPI.cancelAllKeyboardResponses()
-        log('timeout')
-        data.correct = false
-        showFeedback().text('Timeout').css('color', '#b00')
-      }
-    })
+    if (max_time != null) {
+      let timer = makeTimer(max_time / 1000, $("<div>").appendTo(stage))
+      timer.then(() => {
+        if (!responded) {
+          jsPsych.pluginAPI.cancelAllKeyboardResponses()
+          log('timeout')
+          data.correct = false
+          showFeedback().text('Timeout').css('color', '#b00')
+        }
+      })
+    }
 
     let {key, rt} = await getKeyPress(keys)
     responded = true

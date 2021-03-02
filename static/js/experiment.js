@@ -4,7 +4,8 @@ const PARAMS = {
 
   train_presentation_duration: 3000,
   recall_time: 10000,
-  afc_time: 5000,
+  afc_time: null,
+  afc_bonus_time: 5000,
   
   n_pair: 10,
   n_repeat: 3,
@@ -117,8 +118,11 @@ async function initializeExperiment() {
       # Test (${i+1} / ${PARAMS.n_repeat})
 
       Now we'll see how well you've learned the pairs. On each round,
-      you will see a word and two images. Then you'll have ${PARAMS.afc_time / 1000} 
-      seconds to select the image that goes with the pair.
+      you will see a word and two images. ${PARAMS.afc_time == null ? `
+        Try to select the image that goes with the word.
+      ` : `
+        Then you'll have ${PARAMS.afc_time / 1000} seconds to select the image that goes with the word.
+      `}
 
       You will earn ${fmt_cents(PARAMS.bonus_rate_distractor)} for each
       correct answer. You will also receive a small extra bonus for answering
@@ -150,7 +154,7 @@ async function initializeExperiment() {
       on_finish: data => {
         n_correct += data.correct
         if (data.correct) {
-          let prop_left = (PARAMS.afc_time - data.rt) / PARAMS.afc_time
+          let prop_left = (PARAMS.afc_bonus_time - data.rt) / PARAMS.afc_bonus_time
           time_bonus += prop_left * PARAMS.bonus_rate_speed
         }
       }
