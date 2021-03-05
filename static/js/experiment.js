@@ -76,7 +76,9 @@ async function initializeExperiment() {
     and testing your knowledge. You will earn a bonus for each correct response
     you give. Finally, you will complete two additional test rounds where
     you can earn additional bonus money. The maximum bonus is $${(max_bonus / 100).toFixed(2)}
-  `)
+  `, {
+    on_finish: psiturk.finishInstructions
+  })
 
   let train_trials = all_pairs.map(({image, word}) => {
     let stimulus = PARAMS.overlay ? `
@@ -161,6 +163,7 @@ async function initializeExperiment() {
     }
     
     let feedback = button_trial(() => {
+      // saveData()
       time_bonus = Math.ceil(time_bonus)
       BONUS += time_bonus
       return `
