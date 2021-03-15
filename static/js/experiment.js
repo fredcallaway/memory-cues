@@ -31,6 +31,8 @@ function fmt_cents(cents) {
 }
 XX = null
 
+var CRITICAL_PAIRS
+
 function button_trial(html, opts={}) {
   return {
     stimulus: () => {
@@ -47,6 +49,8 @@ function button_trial(html, opts={}) {
   }
 }
 
+
+
 async function initializeExperiment() {
   LOG_DEBUG('initializeExperiment');
 
@@ -61,6 +65,7 @@ async function initializeExperiment() {
       return {word, image}
     })
   })
+  PAIRS = pairs
   let all_pairs = pairs.low.concat(pairs.high)
   XX = all_pairs
 
@@ -185,7 +190,6 @@ async function initializeExperiment() {
     train_afc_blocks.push(make_afc_block(i))
   })
 
-
   let distractor_intro = button_trial(`
     # Math challenge
 
@@ -221,7 +225,7 @@ async function initializeExperiment() {
     `
   }[PARAMS.test_type]
 
-  let test_instruct =  button_trial(`
+  let test_instruct = button_trial(`
     # Final test
 
     You're almost done! In this last section, we will test your knowledge one
@@ -229,21 +233,59 @@ async function initializeExperiment() {
     These rounds are harder, so you'll earn a higher bonus,
     ${PARAMS.bonus_rate_critical} cents for each correct response you give! We'll start
     with a practice round.
-  `)
+  `, {
+    on_finish() {
+      // build the critical trials
+      let = scores = _.chain(AFC_LOG)
+      .groupBy("word")
+      .mapObject((record) => record.reduce(({rt}) => Math.log(rt)))
+      .value()
+      psiturk.recordUnstructuredData('afc_scores', scores)
+
+      let sorted_pairs = pairs.low.concat(pairs.high)
+      .sort(({word}) => scores[word])
+
+      CRITICAL_PAIRS = _.zip(
+        sorted_pairs.slice(0, PARAMS.n_pair),
+        sorted_pairs.slice(PARAMS.n_pair).reverse()
+      )
+      console.log('CRITICAL_PAIRS', CRITICAL_PAIRS)
+    }
+  })
+
+  let critical_timeline = {
+    simple() {
+      let timeline = _.shuffle(pairs.low.concat(pairs.high))
+      timeline[0].practice = true
+      return timeline
+    },
+    multi() {
+      let timeline = _.chain(PARAMS.n_pair)
+      .range()
+      .map(idx => {
+        return {
+          options() {
+            console.log('in options')
+            console.log(CRITICAL_PAIRS[idx])
+            return CRITICAL_PAIRS[idx]
+          }
+        }
+      })
+      .shuffle()
+      .value()
+      timeline[0].practice = true
+      return timeline
+    }
+  }
 
   let test_block = {
     type: `${PARAMS.test_type}-recall`,
     bonus: PARAMS.bonus_rate_critical,
     recall_time: PARAMS.recall_time,
-    timeline: (()=>{
-      let timeline = PARAMS.test_type == 'simple' ?
-        _.shuffle(pairs.low.concat(pairs.high)) :
-        _.zip(pairs.low, pairs.high).map(options => ({options}))
-      timeline[0].practice = true
-      console.log('=>', timeline)
-      return timeline
-    })()
+    timeline: critical_timeline[PARAMS.test_type]()
   }
+  console.log(test_block.timeline)
+
 
   let debrief = {
     type: 'survey-text',
@@ -268,8 +310,6 @@ async function initializeExperiment() {
   /////////////////////////
   // Experiment timeline //
   /////////////////////////
-
-  console.log(train_afc_blocks)
 
   let timeline = [
     welcome_block,

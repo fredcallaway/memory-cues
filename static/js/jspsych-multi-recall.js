@@ -15,7 +15,14 @@ jsPsych.plugins["multi-recall"] = (function() {
 
   plugin.trial = async function(display_element, trial) {
     let display = $(display_element);
+
     let {options} = trial;
+
+    if(typeof options === 'function'){
+      options = options.call();
+    }
+
+    console.log('multi-recall', options)
 
     if (trial.practice) {
       $('<div>')
@@ -49,10 +56,9 @@ jsPsych.plugins["multi-recall"] = (function() {
     let stage = $('<div>')
     .css({
       'text-align': 'center',
-      'outline': 'thin red solid'
+      // 'outline': 'thin red solid'
     })
     .appendTo(display);
-
 
     let btn = $('<button>')
     .text('start')

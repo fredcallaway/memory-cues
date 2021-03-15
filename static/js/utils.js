@@ -11,6 +11,10 @@ function maybeJson(s) {
   }
 };
 
+function sum(xs) {
+  return xs.reduce((a, b) => a+b)
+}
+
 function getKeyPress(options) {
   return new Promise(function(resolve) {
     return jsPsych.pluginAPI.getKeyboardResponse({
