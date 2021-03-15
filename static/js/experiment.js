@@ -1,4 +1,5 @@
-const PARAMS = {
+
+const PARAMS = { // = PARAMS =
   test_type: 'multi',
   overlay: true,
 
@@ -32,6 +33,12 @@ function fmt_cents(cents) {
 XX = null
 
 var CRITICAL_PAIRS
+
+if (searchParams.get('debug_multi', false)) {
+  AFC_LOG = [{"word":"crook","correct":false,"rt":3422},{"word":"fellow","correct":true,"rt":2233},{"word":"mister","correct":false,"rt":1351},{"word":"magazine","correct":true,"rt":2937},{"word":"tulip","correct":false,"rt":2808},{"word":"seagull","correct":true,"rt":3688},{"word":"mister","correct":false,"rt":1616},{"word":"crook","correct":false,"rt":3350},{"word":"tulip","correct":true,"rt":848},{"word":"seagull","correct":true,"rt":725},{"word":"fellow","correct":true,"rt":1467},{"word":"magazine","correct":true,"rt":1673}]
+  PARAMS.n_pair = 3
+  searchParams.set('skip', 8)
+}
 
 function button_trial(html, opts={}) {
   return {
@@ -72,7 +79,7 @@ async function initializeExperiment() {
   let max_bonus = 
     (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat +
     PARAMS.bonus_rate_distractor * PARAMS.n_distractor +
-    PARAMS.bonus_rate_critical * (PARAMS.test_type == 'simple' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
+    (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_speed) * (PARAMS.test_type == 'simple' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
   
   let welcome_block = button_trial(`
     # Welcome 😃
@@ -81,7 +88,7 @@ async function initializeExperiment() {
     between images and words. You'll begin with three rounds of learning
     and testing your knowledge. You will earn a bonus for each correct response
     you give. Finally, you will complete two additional test rounds where
-    you can earn additional bonus money. The maximum bonus is $${(max_bonus / 100).toFixed(2)}
+    you can earn additional bonus money. The maximum bonus is $${(max_bonus / 100).toFixed(2)}.
   `, {
     on_finish: psiturk.finishInstructions
   })
@@ -218,8 +225,8 @@ async function initializeExperiment() {
       On each round, we will display two of the pictures you saw before. They
       will be covered by gray boxes, but you can hover over the box with your
       mouse to show the image. You only need to remember the word associated
-      with *one* of them. When you're ready to guess, click on the image you
-      think you know the word for. A text box will appear and you'll have five
+      with *one* of them. As soon as you remember one of the words, click on the
+      associated image. A text box will appear and you'll have five
       seconds to type the word. Hit enter to submit, and the next trial will
       begin.
     `
@@ -230,17 +237,22 @@ async function initializeExperiment() {
 
     You're almost done! In this last section, we will test your knowledge one
     more time. But it will be a little different this time. ${type_instruct}
+    
     These rounds are harder, so you'll earn a higher bonus,
-    ${PARAMS.bonus_rate_critical} cents for each correct response you give! We'll start
-    with a practice round.
+    ${PARAMS.bonus_rate_critical} cents for each correct response you give.
+    Like before, you will earn a little extra money for responding quickly,
+    so try to be as fast as you can while maintaining accuracy!
+    We'll start with a practice round.
   `, {
     on_finish() {
+      console.log('building critical trials')
       // build the critical trials
       let = scores = _.chain(AFC_LOG)
       .groupBy("word")
       .mapObject((record) => record.reduce(({rt}) => Math.log(rt)))
       .value()
       psiturk.recordUnstructuredData('afc_scores', scores)
+      console.log('scores', scores)
 
       let sorted_pairs = pairs.low.concat(pairs.high)
       .sort(({word}) => scores[word])
@@ -249,6 +261,7 @@ async function initializeExperiment() {
         sorted_pairs.slice(0, PARAMS.n_pair),
         sorted_pairs.slice(PARAMS.n_pair).reverse()
       )
+      psiturk.recordUnstructuredData('critical_pairs', CRITICAL_PAIRS)
       console.log('CRITICAL_PAIRS', CRITICAL_PAIRS)
     }
   })
@@ -278,18 +291,28 @@ async function initializeExperiment() {
     }
   }
 
+  var test_time_bonus = 0
   let test_block = {
     type: `${PARAMS.test_type}-recall`,
     bonus: PARAMS.bonus_rate_critical,
     recall_time: PARAMS.recall_time,
-    timeline: critical_timeline[PARAMS.test_type]()
+    timeline: critical_timeline[PARAMS.test_type](),
+    on_finish(data) {
+      console.log("ON FINISH")
+      let x = _.last(data.events)
+      if (x.event == "response" && x.word == x.response) {
+        let rt = x.time - data.events[0].time
+        let prop_left = (PARAMS.recall_time - rt) / PARAMS.recall_time
+        prop_left = Math.max(0, prop_left)
+        test_time_bonus += prop_left * PARAMS.bonus_rate_speed
+      }
+    },
   }
-  console.log(test_block.timeline)
-
 
   let debrief = {
     type: 'survey-text',
     preamble: () => {
+      BONUS += Math.ceil(test_time_bonus)
       psiturk.recordUnstructuredData('bonus', BONUS / 100);
       return markdown(`
         # Study complete
@@ -307,11 +330,8 @@ async function initializeExperiment() {
     ].map(prompt => ({prompt, rows: 2, columns: 70}))
   }
 
-  /////////////////////////
-  // Experiment timeline //
-  /////////////////////////
-
-  let timeline = [
+  
+  let timeline = [  // = timeline =
     welcome_block,
     ...train_afc_blocks,
     distractor,
@@ -321,6 +341,7 @@ async function initializeExperiment() {
   ];
 
   let skip = searchParams.get('skip');
+
   if (skip != null) {
     timeline = timeline.slice(skip);
   }
