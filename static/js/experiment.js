@@ -1,5 +1,5 @@
 const PARAMS = {
-  test_type: 'simple',
+  test_type: 'multi',
   overlay: true,
 
   train_presentation_duration: 3000,
@@ -16,6 +16,7 @@ const PARAMS = {
   bonus_rate_distractor: 1,
   bonus_rate_speed: 0.25,
 }
+
 searchParams = new URLSearchParams(location.search)
 updateExisting(PARAMS, mapObject(Object.fromEntries(searchParams), maybeJson))
 psiturk.recordUnstructuredData('params', PARAMS);
@@ -287,7 +288,7 @@ async function initializeExperiment() {
   return startExperiment({
     timeline,
     exclusions: {
-      min_width: 800,
+      min_width: 900,
       min_height: 600
     },
   });
