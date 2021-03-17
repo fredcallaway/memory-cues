@@ -108,7 +108,7 @@ jsPsych.plugins["multi-recall"] = (function() {
     let timer_container = $('<div>').css('margin-top', 20).appendTo(stage)
     let timer = makeTimer(recall_time / 1000, timer_container)
     timer.then(() => {
-      jsPsych.cancelAllKeyboardResponses()
+      jsPsych.pluginAPI.cancelAllKeyboardResponses()
       if (!complete) {
         complete = true
         log('timeout')
