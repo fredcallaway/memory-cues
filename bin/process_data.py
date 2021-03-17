@@ -56,20 +56,68 @@ def parse_simple(row):
         # if e['event'] == 'start trial':
         if e['event'] == 'show image':
             start = e['time']
+        
         elif e['event'] == 'begin response':
             begin_response = e['time']
             x['rt'] = round(begin_response - start)
-        elif e['event'] == 'type' and e['input'].strip() != '' and 'typing_rt' not in x:
+        
+        elif e['event'] == 'type' and 'typing_rt' not in x:
             x['typing_rt'] = round(e['time'] - start)
+        
         elif e['event'] == 'response':
             x['response'] = e['response']
             x['type_time'] = e['time'] - begin_response
             x['response_type'] = classify_response(x['word'], e['response'])
             return x
+        
         elif e['event'] == 'timeout':
             x['response_type'] = 'timeout'
             return x
     assert False
+
+def parse_multi(row):
+    ev = literal_eval(row.events)
+    t = literal_eval(row.trial)
+    # if row.time_elapsed == 683588:
+    #     import IPython, time; IPython.embed(); time.sleep(0.5)
+    x = {'wid': row.wid, 'practice': t.get('practice', False)}
+    x['fixations'] = fixations = []
+    for e in ev:
+        # if e['event'] == 'start trial':
+        if e['event'] == 'show blocks':
+            start = e['time']
+            exit_time = start
+
+        elif e['event'] == 'enter':
+            enter_time = e['time']
+            assert enter_time > exit_time
+            fixations.append(('saccade', enter_time - exit_time))
+
+        elif e['event'] == 'exit':
+            exit_time = e['time']
+            assert enter_time < exit_time
+            fixations.append((e['word'], exit_time - enter_time))
+        
+        elif e['event'] == 'click':
+            click_time = e['time']
+            x['click_rt'] = round(click_time - start)
+            fixations.append((e['word'], click_time - enter_time))
+
+        elif e['event'] == 'type' and 'typing_rt' not in x:
+            x['typing_rt'] = round(e['time'] - start)
+
+        elif e['event'] == 'response':
+            x['word'] = e['word']
+            x['response'] = e['response']
+            x['type_time'] = e['time'] - click_time
+            x['response_type'] = classify_response(x['word'], e['response'])
+            return x
+
+        elif e['event'] == 'timeout':
+            print('timeout')
+            x['response_type'] = 'timeout'
+            return x
+
 
 
 def parse_afc(row):
@@ -98,11 +146,19 @@ def main(codeversion):
     def load_raw(kind):
         return  pd.read_csv(f'data/human/{codeversion}/{kind}.csv').dropna(axis=1)
 
-    simple = load_raw('simple-recall').apply(parse_simple, axis=1, result_type='expand')
-    simple.set_index('wid').to_csv(out + 'simple-recall.csv')
-    
-    afc = load_raw('afc').apply(parse_afc, axis=1, result_type='expand')
-    afc.set_index('wid').to_csv(out + 'afc.csv')
+    def process(kind):
+        try:
+            parser = {'simple-recall': parse_simple, 'multi-recall': parse_multi, 'afc': parse_afc}[kind]
+            data = load_raw(kind).apply(parser, axis=1, result_type='expand')
+        except FileNotFoundError:
+            pass
+        else:
+            fn = out + f'{kind}.csv'
+            data.set_index('wid').to_csv(fn)
+            print('wrote', fn)
+
+    for kind in ['simple-recall', 'multi-recall', 'afc']:
+        process(kind)
 
     pdf = load_raw('participants').set_index('wid')
     pdf['math_correct'] = load_raw('math').set_index('wid').num_correct
