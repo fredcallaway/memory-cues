@@ -14,13 +14,13 @@ jsPsych.plugins["multi-recall"] = (function() {
   };
 
   plugin.trial = async function(display_element, trial) {
+    jsPsych.pluginAPI.cancelAllKeyboardResponses()
     let display = $(display_element);
 
     if (typeof trial.options === 'function') {
       trial.options = trial.options.call();
     }
     let {options, recall_time, bonus, practice=false} = trial;
-
 
     console.log('multi-recall', options)
 
@@ -108,6 +108,7 @@ jsPsych.plugins["multi-recall"] = (function() {
     let timer_container = $('<div>').css('margin-top', 20).appendTo(stage)
     let timer = makeTimer(recall_time / 1000, timer_container)
     timer.then(() => {
+      jsPsych.cancelAllKeyboardResponses()
       if (!complete) {
         complete = true
         log('timeout')
