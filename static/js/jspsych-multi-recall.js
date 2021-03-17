@@ -19,7 +19,7 @@ jsPsych.plugins["multi-recall"] = (function() {
     if (typeof trial.options === 'function') {
       trial.options = trial.options.call();
     }
-    let {options} = trial;
+    let {options, recall_time, bonus, practice=false} = trial;
 
 
     console.log('multi-recall', options)
@@ -29,16 +29,18 @@ jsPsych.plugins["multi-recall"] = (function() {
       .html(markdown(`
         # Practice trial
 
-        - Click the start button.
-        - Hover over the gray boxes to show the image underneath.
-        - As soon as you remember the word for an image, click on it.
-        - Type the word into the text box and hit enter.
+        - Each round has two images. You only need to remember the word for one of them.
+        - Press space. The first image will appear.
+        - Press space again to show the second image.
+        - You can continue to flip back and forth between the images as long as you like.
+        - As soon as you remember one of the words, press **enter/return** while it is on the screen.
+        - A text box will appear. Type the word that was paired with the on-screen image.
+        - Hit enter/return to submit your response.
+        - Make sure to respond before the timer hits zero!
       `))
       .appendTo(display);
-      
     }
 
-    let clicked = false;
     let data = {
       trial,
       events: []
@@ -46,6 +48,7 @@ jsPsych.plugins["multi-recall"] = (function() {
     let start_time = performance.now();
 
     function log(event, info) {
+      console.log(event, info)
       data.events.push({
         time: performance.now() - start_time,
         event,
@@ -54,83 +57,108 @@ jsPsych.plugins["multi-recall"] = (function() {
     }
 
     let stage = $('<div>')
-    .css({
-      'text-align': 'center',
-      // 'outline': 'thin red solid'
-    })
-    .appendTo(display);
+    .css('text-align', 'center')
+    .css('margin-top', 40)
+    .appendTo(display)
 
-    let btn = $('<button>')
-    .text('start')
-    .css('margin-top', 170)
+    function showFeedback() {
+      stage.empty()
+      let fb = $('<div>')
+      .css('font-size', '32pt')
+      .css('font-weight', 'bold')
+      .css('margin-top', 120)
+      .appendTo(stage)
+
+      sleep(1500)
+      .then(()=> {
+        display.empty()
+        jsPsych.finishTrial(data)
+      })
+      return fb
+    }
+
+    let space = $('<div>')
+    .css('margin-top', 140)
+    .text('press space when ready')
     .appendTo(stage)
 
-    await new Promise(resolve => btn.click(resolve))
+    await getKeyPress(['space'])
+    await sleep()  // this prevents the space from being logged as a key press
+    space.remove()
+    var visible = 0
+    log('show', {visible})
 
-    log('show blocks')
-    btn.remove()
-    options.forEach(({word, image}) => {
-      let block = $('<div>')
-      .css({
-          float: 'left',
-          margin: 63
-      })
-      .appendTo(stage);
-      
-      let mask = $('<div>')
-      .css({
-          width: SIZE,
-          height: SIZE,
-          background: 'gray'
-      })
-      .appendTo(block);
-      
-      let img = $('<img>', {
-        src: image,
-        // height: SIZE,
-        // width: SIZE,
-      })
-      .hide()
-      .appendTo(block);
-      
-      block
-      .mouseenter(() => {
-        if (clicked) return;
-        log('enter', {word});
-        mask.hide();
-        img.show();
-      })
-      .mouseleave(() => {
-        if (clicked) return;
-        log('exit', {word});
-        mask.show();
-        img.hide();
-      })
-      .click(() => {
-        if (clicked) return;
-        log('click', {word});
-        clicked = true;
-        let input_div = $('<div/>').appendTo(stage);
-        let input = $('<input />')
-        .css({
-          width: SIZE - 40
-        })
-        .appendTo(input_div)
-        .focus()
-        .keypress(function(event) {
-          log('type', {input: input.val()});
-          if (event.keyCode == 13 || event.which == 13) {
-            let response = input.val();
-            log('response', {word, response});
-            console.log(data);
-            display.empty()
-            sleep(500)
-            .then(()=>jsPsych.finishTrial(data))
-              
-          }
-        });
-      });
-    });
+    let images = $('<div>').appendTo(stage)
+    let img1 = $('<img>', {
+      src: options[0].image,
+      // height: SIZE,
+      // width: SIZE,
+    })
+    .appendTo(images)
+    
+    let img2 = $('<img>', {
+      src: options[1].image,
+      // height: SIZE,
+      // width: SIZE,
+    })
+    .appendTo(images)
+    .hide()
+
+    var complete = false
+    let timer_container = $('<div>').css('margin-top', 20).appendTo(stage)
+    let timer = makeTimer(recall_time / 1000, timer_container)
+    timer.then(() => {
+      if (!complete) {
+        complete = true
+        log('timeout')
+        showFeedback().text('Timeout').css('color', '#b00')
+      }
+    })
+
+    // alternate viewing each image
+    while (true) {
+      let {key} = await getKeyPress(['space', 'enter'])
+      if (complete) return  // trial is already over
+      if (key == 'space') {
+        visible = (visible + 1) % 2
+        log('switch', {visible})
+        img1.toggle(); img2.toggle()
+      } else {
+        log('begin response')
+        await sleep(30)
+        break
+      }
+    }
+
+    // get response for currently visible image
+    let {word} = options[visible]
+    let input_div = $('<div/>')
+    .appendTo(stage)
+    let input = $('<input />')
+    .css({
+      'margin-top': 20,
+      width: SIZE - 40
+    })
+    .appendTo(input_div)
+    .focus()
+    .keydown(function(event) {
+      log('type', {input: input.val(), key: event.key, keyCode: event.keyCode});
+    })
+
+    await getKeyPress(['enter'])
+    let response = input.val();
+    complete = true
+    log('response', {word, response});
+
+    if (response == word || practice) {
+      BONUS += bonus
+    }
+
+    if (response == word) {
+      showFeedback().text(`Correct! +${bonus}¢`).css('color', '#080')
+    } else {
+      showFeedback().text('Incorrect').css('color', '#b00')
+    }
   };
 
   return plugin;

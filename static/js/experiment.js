@@ -278,9 +278,7 @@ async function initializeExperiment() {
       .map(idx => {
         return {
           options() {
-            console.log('in options')
-            console.log(CRITICAL_PAIRS[idx])
-            return CRITICAL_PAIRS[idx]
+            return _.shuffle(CRITICAL_PAIRS[idx])
           }
         }
       })
@@ -330,8 +328,15 @@ async function initializeExperiment() {
     ].map(prompt => ({prompt, rows: 2, columns: 70}))
   }
 
+  let test_multi = {
+    type: `multi-recall`,
+    bonus: PARAMS.bonus_rate_critical,
+    recall_time: PARAMS.recall_time,
+    options: [{"word":"rouge","image":"../static/stimuli/images/pool/sun_antxeexzhaspkvlj.jpg"},{"word":"antelope","image":"../static/stimuli/images/river/sun_aiazxjumlgdcrfpn.jpg"}]
+  }
   
   let timeline = [  // = timeline =
+    // test_multi,
     welcome_block,
     ...train_afc_blocks,
     distractor,
