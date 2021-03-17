@@ -222,10 +222,11 @@ async function initializeExperiment() {
       was paired with the image.
     `,
     multi: `
-      On each round, we will display two of the pictures you saw before. They
-      will be covered by gray boxes, but you can hover over the box with your
-      mouse to show the image. You only need to remember the word associated
-      with *one* of them. As soon as you remember one of the words, click on the
+      On each round, you will be shown two images. You only have to remember
+      the word associated with _one_ of them. We will only display one image
+      at a time, but you can switch between them using the space bar. As soon
+      as you remember one of the words, make sure it is the one ...
+
       associated image. A text box will appear and you'll have five
       seconds to type the word. Hit enter to submit, and the next trial will
       begin.
