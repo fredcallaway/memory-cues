@@ -29,12 +29,11 @@ jsPsych.plugins["multi-recall"] = (function() {
       .html(markdown(`
         # Practice trial
 
-        - Each round has two images. You only need to remember the word for one of them.
         - Press space. The first image will appear.
         - Press space again to show the second image.
         - You can continue to flip back and forth between the images as long as you like.
-        - As soon as you remember one of the words, press **enter/return** while it is on the screen.
-        - A text box will appear. Type the word that was paired with the on-screen image.
+        - As soon as you remember one of the words, press enter/return while its image is on the screen.
+        - A text box will appear. Type in the word that was paired with the on-screen image.
         - Hit enter/return to submit your response.
         - Make sure to respond before the timer hits zero!
       `))

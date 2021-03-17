@@ -222,14 +222,12 @@ async function initializeExperiment() {
       was paired with the image.
     `,
     multi: `
-      On each round, you will be shown two images. You only have to remember
-      the word associated with _one_ of them. We will only display one image
-      at a time, but you can switch between them using the space bar. As soon
-      as you remember one of the words, make sure it is the one ...
-
-      associated image. A text box will appear and you'll have five
-      seconds to type the word. Hit enter to submit, and the next trial will
-      begin.
+      On each round, you will be shown two images and you have to remember the
+      word associated with _one_ of them. We will only display one image at a
+      time, but you can switch between them using the space bar. As soon as
+      you remember one of the words, make sure the associated image is on the
+      screen and press enter. Then type the word into the text box that
+      appears and press enter again to submit.
     `
   }[PARAMS.test_type]
 
@@ -240,11 +238,11 @@ async function initializeExperiment() {
     more time. But it will be a little different this time. ${type_instruct}
     
     These rounds are harder, so you'll earn a higher bonus,
-    ${PARAMS.bonus_rate_critical} cents for each correct response you give.
-    Like before, you will earn a little extra money for responding quickly,
-    so try to be as fast as you can while maintaining accuracy!
+    ${PARAMS.bonus_rate_critical} cents for each correct response.
     We'll start with a practice round.
   `, {
+    // Like before, you will earn a little extra money for responding quickly,
+    // so try to be as fast as you can while maintaining accuracy!
     on_finish() {
       console.log('building critical trials')
       // build the critical trials
