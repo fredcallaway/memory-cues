@@ -36,8 +36,11 @@ jsPsych.plugins["multi-recall"] = (function() {
         - A text box will appear. Type in the word that was paired with the on-screen image.
         - Hit enter/return to submit your response.
         - Make sure to respond before the timer hits zero!
+        - Normally you'll have ${recall_time/1000} seconds to respond. But for this practice round we'll give
+          you 30 seconds.
       `))
       .appendTo(display);
+      recall_time = 30000
     }
 
     let data = {
