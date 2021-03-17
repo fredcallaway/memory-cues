@@ -16,11 +16,11 @@ jsPsych.plugins["multi-recall"] = (function() {
   plugin.trial = async function(display_element, trial) {
     let display = $(display_element);
 
+    if (typeof trial.options === 'function') {
+      trial.options = trial.options.call();
+    }
     let {options} = trial;
 
-    if(typeof options === 'function'){
-      options = options.call();
-    }
 
     console.log('multi-recall', options)
 
