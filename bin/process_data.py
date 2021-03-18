@@ -78,30 +78,26 @@ def parse_simple(row):
 def parse_multi(row):
     ev = literal_eval(row.events)
     t = literal_eval(row.trial)
-    # if row.time_elapsed == 683588:
-    #     import IPython, time; IPython.embed(); time.sleep(0.5)
-    x = {'wid': row.wid, 'practice': t.get('practice', False)}
-    x['fixations'] = fixations = []
+    x = {
+        'wid': row.wid,
+        'practice': t.get('practice', False),
+        'first_word': t['options'][0]['word'],
+        'second_word': t['options'][1]['word']
+    }
+
+    x['presentation_times'] = []
+
     for e in ev:
-        # if e['event'] == 'start trial':
-        if e['event'] == 'show blocks':
+        if e['event'] == 'show':
             start = e['time']
-            exit_time = start
+            begin_fix = e['time']
 
-        elif e['event'] == 'enter':
-            enter_time = e['time']
-            assert enter_time > exit_time
-            fixations.append(('saccade', enter_time - exit_time))
+        elif e['event'] == 'switch':
+            x['presentation_times'].append(e['time'] - begin_fix)
+            begin_fix = e['time']
 
-        elif e['event'] == 'exit':
-            exit_time = e['time']
-            assert enter_time < exit_time
-            fixations.append((e['word'], exit_time - enter_time))
-        
-        elif e['event'] == 'click':
-            click_time = e['time']
-            x['click_rt'] = round(click_time - start)
-            fixations.append((e['word'], click_time - enter_time))
+        elif e['event'] == 'begin response':
+            x['presentation_times'].append(e['time'] - begin_fix)
 
         elif e['event'] == 'type' and 'typing_rt' not in x:
             x['typing_rt'] = round(e['time'] - start)
@@ -109,7 +105,7 @@ def parse_multi(row):
         elif e['event'] == 'response':
             x['word'] = e['word']
             x['response'] = e['response']
-            x['type_time'] = e['time'] - click_time
+            x['response_rt'] = e['time'] - start
             x['response_type'] = classify_response(x['word'], e['response'])
             return x
 
@@ -144,7 +140,7 @@ def main(codeversion):
     os.makedirs(out, exist_ok=True)
 
     def load_raw(kind):
-        return  pd.read_csv(f'data/human/{codeversion}/{kind}.csv').dropna(axis=1)
+        return  pd.read_csv(f'data/human/{codeversion}/{kind}.csv')#.dropna(axis=1)
 
     def process(kind):
         try:
@@ -159,6 +155,8 @@ def main(codeversion):
 
     for kind in ['simple-recall', 'multi-recall', 'afc']:
         process(kind)
+
+
 
     pdf = load_raw('participants').set_index('wid')
     pdf['math_correct'] = load_raw('math').set_index('wid').num_correct

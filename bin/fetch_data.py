@@ -92,34 +92,20 @@ def reformat_data(version):
     def parse_questiondata():
         qdf = pd.read_csv(data_path + 'questiondata.csv', header=None)
         for uid, df in qdf.groupby(0):
-            try:
-                row = ast.literal_eval(list(df[df[1] == 'params'][2])[0])
-            except:
-                row = {}
-            
             worker_id, assignment_id = uid.split(':')
             identifiers['worker_id'].append(worker_id)
             identifiers['assignment_id'].append(assignment_id)
-            row['wid'] = wid = hash_id(worker_id)
-            identifiers['wid'].append(wid)
+            row = {'wid': hash_id(worker_id)}
+            identifiers['wid'].append(row['wid'])
 
-            completed_row = df[df[1] == 'completed']
-            if len(completed_row):
-                assert len(completed_row) == 1
-                row['completed'] = True
-                data = ast.literal_eval(completed_row[2].iloc[0])
-                for k, v in data.items():
-                    print(k, v)
-                    row[k] = v
-            else:
-                bonus_row = df[df[1] == 'bonus']
-                if len(bonus_row):
-                    bonus = float(list(bonus_row[2])[0])
-                    row['bonus'] = bonus
+            for key, val in df.set_index(1)[2].items():
+                if key == 'params':
+                    row.update(ast.literal_eval(val))
+                elif key == 'bonus':
                     row['completed'] = True
+                    row['bonus'] = float(val)
                 else:
-                    row['bonus'] = 0
-                    row['completed'] = False
+                    row[key] = val
             yield row
 
     try:
