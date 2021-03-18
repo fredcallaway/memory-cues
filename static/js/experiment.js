@@ -246,12 +246,14 @@ async function initializeExperiment() {
     on_finish() {
       console.log('building critical trials')
       // build the critical trials
-      let = scores = _.chain(AFC_LOG)
+      let scores = _.chain(AFC_LOG)
       .groupBy("word")
-      .mapObject((record) => record.reduce(({rt}) => Math.log(rt)))
+      .mapObject(record => 
+        mean(record.map(({rt}) => Math.log(rt)))
+      )
       .value()
       psiturk.recordUnstructuredData('afc_scores', scores)
-      console.log('scores', scores)
+      // console.log('scores', scores)
 
       let sorted_pairs = pairs.low.concat(pairs.high)
       .sort(({word}) => scores[word])
@@ -261,7 +263,7 @@ async function initializeExperiment() {
         sorted_pairs.slice(PARAMS.n_pair).reverse()
       )
       psiturk.recordUnstructuredData('critical_pairs', CRITICAL_PAIRS)
-      console.log('CRITICAL_PAIRS', CRITICAL_PAIRS)
+      // console.log('CRITICAL_PAIRS', CRITICAL_PAIRS)
     }
   })
 

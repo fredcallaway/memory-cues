@@ -14,6 +14,9 @@ function maybeJson(s) {
 function sum(xs) {
   return xs.reduce((a, b) => a+b)
 }
+function mean(xs) {
+  return sum(xs) / length(xs)
+}
 
 function getKeyPress(options) {
   return new Promise(function(resolve) {
