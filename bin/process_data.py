@@ -49,8 +49,6 @@ def parse_simple(row):
     x = {'wid': row.wid, 'word': t['word'], 'image': t['image'], 'practice': t.get('practice', False)}
     x['word_type'] = classify_word(x['word'])
 
-    # import IPython, time; IPython.embed(); time.sleep(0.5)
-    # import IPython, time; IPython.embed(); time.sleep(0.5)
 
     for e in ev:
         # if e['event'] == 'start trial':
@@ -110,8 +108,8 @@ def parse_multi(row):
             return x
 
         elif e['event'] == 'timeout':
-            print('timeout')
             x['response_type'] = 'timeout'
+            x['presentation_times'].append(e['time'] - begin_fix)
             return x
 
 
@@ -156,11 +154,21 @@ def main(codeversion):
     for kind in ['simple-recall', 'multi-recall', 'afc']:
         process(kind)
 
-
-
     pdf = load_raw('participants').set_index('wid')
     pdf['math_correct'] = load_raw('math').set_index('wid').num_correct
+
+    pdf.pop('critical_pairs')
+    n_incomplete = (pdf.completed != True).sum()
+    print(f'{n_incomplete} participants did not complete the experiment')
+    pdf = pdf.loc[pdf.completed == True]
+
+    afc_scores = pdf.pop('afc_scores').apply(
+        lambda x: json.dumps(literal_eval(x))  # None if pd.isna(x) else
+    )
+    afc_scores
+    import IPython, time; IPython.embed(); time.sleep(0.5)
     pdf.to_csv(out + 'participants.csv')
+
 
     survey_raw = load_raw('survey-text').set_index('wid').responses
     survey = pd.DataFrame(list(survey_raw.apply(literal_eval)))
