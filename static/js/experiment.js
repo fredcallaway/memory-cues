@@ -3,13 +3,13 @@ const PARAMS = { // = PARAMS =
   test_type: 'multi',
   overlay: true,
 
-  train_presentation_duration: 3000,
-  recall_time: 10000,
+  train_presentation_duration: 2000,
+  recall_time: 15000,
   afc_time: null,
   afc_bonus_time: 5000,
   
   n_pair: 10,
-  n_repeat: 3,
+  n_repeat: 2,
   n_distractor: 10,
   
   bonus_rate_critical: 2,
@@ -224,9 +224,9 @@ async function initializeExperiment() {
     multi: `
       On each round, you will be shown two images and you have to remember the
       word associated with _one_ of them. We will only display one image at a
-      time, but you can switch between them using the space bar. As soon as
-      you remember one of the words, make sure the associated image is on the
-      screen and press enter. Then type the word into the text box that
+      time, but you can switch between them using the F and J keys. As soon as
+      you remember one of the words, press D (for the left image) or K (for the
+      right image). Then type the word into the text box that
       appears and press enter again to submit.
     `
   }[PARAMS.test_type]
@@ -331,6 +331,7 @@ async function initializeExperiment() {
 
   let test_multi = {
     type: `multi-recall`,
+    practice: true,
     bonus: PARAMS.bonus_rate_critical,
     recall_time: PARAMS.recall_time,
     options: [{"word":"rouge","image":"../static/stimuli/images/pool/sun_antxeexzhaspkvlj.jpg"},{"word":"antelope","image":"../static/stimuli/images/river/sun_aiazxjumlgdcrfpn.jpg"}]

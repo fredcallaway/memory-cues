@@ -29,15 +29,15 @@ jsPsych.plugins["multi-recall"] = (function() {
       .html(markdown(`
         # Practice trial
 
-        - Press space. The first image will appear.
-        - Press space again to show the second image.
-        - You can continue to flip back and forth between the images as long as you like.
-        - As soon as you remember one of the words, press enter/return while its image is on the screen.
-        - A text box will appear. Type in the word that was paired with the on-screen image.
-        - Hit enter/return to submit your response.
-        - Make sure to respond before the timer hits zero!
-        - Normally you'll have ${recall_time/1000} seconds to respond. But for this practice round we'll give
-          you 30 seconds.
+        - Press F to show the left image. Press J to show the right image.
+        - A timer will start as soon as you show one of the images. Normally
+          you'll have ${recall_time/1000} seconds to respond. But for this
+          practice round we'll give you 30 seconds.
+        - You can flip back and forth as many times as you like. 
+        - **For this practice round, please show each image twice!**
+        - If you remember the word for the left image, press D. For the right image, press K.
+        - A text box will appear. Type in the word that was paired with the image you chose.
+        - Hit enter/return to submit your response. Make sure to respond before the timer hits zero!
       `))
       .appendTo(display);
       recall_time = 30000
@@ -78,63 +78,107 @@ jsPsych.plugins["multi-recall"] = (function() {
       })
       return fb
     }
+    let displays = options.map(({word, image}) => {
+      let block = $('<div>')
+      .css({
+          float: 'left',
+          'margin-left': 63,
+          'margin-right': 63,
+          'margin-bottom': 30,
+      })
+      .appendTo(stage);
+      
+      let mask = $('<div>')
+      .css({
+          width: SIZE,
+          height: SIZE,
+          background: 'gray'
+      })
+      .appendTo(block);
+      
+      let img = $('<img>', {
+        src: image,
+        // height: SIZE,
+        // width: SIZE,
+      })
+      .hide()
+      .appendTo(block);
 
-    let space = $('<div>')
-    .css('margin-top', 140)
-    .text('press space when ready')
-    .appendTo(stage)
-
-    await getKeyPress(['space'])
-    await sleep()  // this prevents the space from being logged as a key press
-    space.remove()
-    var visible = 0
-    log('show', {visible})
-
-    let images = $('<div>').appendTo(stage)
-    let img1 = $('<img>', {
-      src: options[0].image,
-      // height: SIZE,
-      // width: SIZE,
-    })
-    .appendTo(images)
-    
-    let img2 = $('<img>', {
-      src: options[1].image,
-      // height: SIZE,
-      // width: SIZE,
-    })
-    .appendTo(images)
-    .hide()
-
-    var complete = false
-    let timer_container = $('<div>').css('margin-top', 20).appendTo(stage)
-    let timer = makeTimer(recall_time / 1000, timer_container)
-    timer.then(() => {
-      if (!complete) {
-        complete = true
-        log('timeout')
-        showFeedback().text('Timeout').css('color', '#b00')
+      return {
+        block, mask, img,
+        show() {
+          mask.hide()
+          img.show()
+        },
+        hide() {
+          mask.show()
+          img.hide()
+        }
       }
     })
+  
+    var complete = false
+    let timer_container = $('<div>').css('margin-top', 20).appendTo(stage)
+    let timer = null
+    function startTimer() {
+      timer = makeTimer(recall_time / 1000, timer_container)
+      timer.then(() => {
+        if (!complete) {
+          complete = true
+          log('timeout')
+          showFeedback().text('Timeout').css('color', '#b00')
+        }
+      })
+    }
 
-    // alternate viewing each image
-    while (true) {
-      let {key} = await getKeyPress(['space', 'enter'])
-      if (complete) return  // trial is already over
-      if (key == 'space') {
-        visible = (visible + 1) % 2
-        log('switch', {visible})
-        img1.toggle(); img2.toggle()
-      } else {
-        log('begin response')
-        await sleep(30)
-        break
+    // flip between images with key presses
+    let choice = null
+    while (choice == null) {
+      let {key} = await getKeyPress(['F', 'J', 'D', 'K'])
+      console.log({key})
+      if (timer == null) startTimer();
+      if (complete) return;     // trial is already over
+      switch (key) {
+        case 'F':
+          log('show', {option: 0})
+          displays[0].show()
+          displays[1].hide()
+          break
+        case 'J':
+          log('show', {option: 1})
+          displays[1].show()
+          displays[0].hide()
+          break
+        case 'D':
+          log('choose', {option: 0})
+          choice = 0
+          break
+        case 'K':
+          log('choose', {option: 1})
+          choice = 1
+          break
       }
     }
 
-    // get response for currently visible image
-    let {word} = options[visible]
+    displays[choice].block
+    .css({
+      'outline': '10px solid #FFDD47',
+      'outline-offset': '-10px' //keeping it inside
+    })
+
+    // displays[0 + !choice].hide()
+    // displays[choice].show()
+    // await sleep(1000)
+
+    displays[0].hide()
+    displays[1].hide()
+
+    log('begin response')
+    await sleep(30)
+
+    let {word} = options[choice]
     let input_div = $('<div/>')
+    // .appendTo(displays.block)
     .appendTo(stage)
     let input = $('<input />')
     .css({
