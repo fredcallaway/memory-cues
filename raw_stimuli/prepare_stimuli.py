@@ -88,7 +88,9 @@ def write_images():
             continue
         os.makedirs(f'../static/stimuli/images/{cat}')
         image_paths[cat] = []
-        for i, fn in enumerate(os.listdir(f'image_stimuli/{cat}')):
+        for fn in os.listdir(f'image_stimuli/{cat}'):
+            if fn == '.DS_Store':
+                continue
             img = Image.open(f'image_stimuli/{cat}/{fn}')
             new = resize_and_crop(img, (300, 300))
             path = f'../static/stimuli/images/{cat}/{fn}'
@@ -121,6 +123,7 @@ def get_words():
 
 def main():
     image_paths = write_images()
+    low, high = get_words()
     with open('../static/stimuli/stimuli.json', 'w+') as f:
         json.dump({
             'words': {
