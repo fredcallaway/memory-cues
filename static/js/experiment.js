@@ -8,7 +8,7 @@ const PARAMS = { // = PARAMS =
   afc_time: null,
   afc_bonus_time: 5000,
   
-  n_pair: 10,
+  n_pair: 20,
   n_repeat: 2,
   n_distractor: 10,
   
@@ -128,6 +128,18 @@ async function initializeExperiment() {
     return {timeline: [intro, block]}
   }
 
+  function make_afc_pairs() {
+    return _.chain(all_pairs)
+      .shuffle()
+      .map(({image, word}, i, arr) => ({
+        word: word,
+        target_image: image,
+        lure_images: [arr[(i+1) % arr.length].image],
+      }))
+      .shuffle()
+      .value()
+  }
+
   function make_afc_block(i) {
     let intro = button_trial(`
       # Test (${i+1} / ${PARAMS.n_repeat})
@@ -147,18 +159,18 @@ async function initializeExperiment() {
       However, to make things harder, we won't tell you which
       ones were correct! 😉
     ` + ((i == 0) ? "We'll start with a practice round." : ""))
+
+
+    let timeline = make_afc_pairs()
     
-    let timeline = _.chain(all_pairs)
-      .shuffle()
-      .map(({image, word}, i, arr) => ({
-        word: word,
-        target_image: image,
-        lure_images: [arr[(i+1) % arr.length].image],
-      }))
-      .shuffle()
-      .value()
-    if (i == 0) timeline[0].practice = true
-    
+    // Specialize by number
+    if (i == 0) {
+      timeline[0].practice = true
+    } else if (i == PARAMS.n_repeat - 1) {
+      timeline = timeline.concat(make_afc_pairs())
+      console.log("DOUBLING", timeline.length)
+    }
+    console.log("FOOBARS")
     var n_correct = 0
     var time_bonus = 0
     let block = {
@@ -249,7 +261,7 @@ async function initializeExperiment() {
       let scores = _.chain(AFC_LOG)
       .groupBy("word")
       .mapObject(record => 
-        mean(record.map(({rt}) => Math.log(rt)))
+        mean(record.map(({correct, rt}) => Math.log(rt)))
       )
       .value()
       psiturk.recordUnstructuredData('afc_scores', scores)
