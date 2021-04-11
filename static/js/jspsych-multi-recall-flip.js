@@ -2,7 +2,7 @@
  * Example plugin template
  */
 
-jsPsych.plugins["multi-recall"] = (function() {
+jsPsych.plugins["multi-recall-flip"] = (function() {
 
   var SIZE = 300;
 
@@ -131,6 +131,16 @@ jsPsych.plugins["multi-recall"] = (function() {
         break
       }
     }
+    images.empty()
+    let mask = $('<div>')
+    .css({
+        width: SIZE,
+        height: SIZE,
+        margin: 'auto',
+        background: 'gray'
+    })
+    .appendTo(images);
+
 
     // get response for currently visible image
     let {word} = options[visible]
