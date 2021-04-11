@@ -1,6 +1,6 @@
 
 const PARAMS = { // = PARAMS =
-  test_type: 'multi',
+  test_type: 'multi-recall',
   overlay: true,
 
   train_presentation_duration: 2000,
@@ -79,7 +79,7 @@ async function initializeExperiment() {
   let max_bonus = 
     (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat +
     PARAMS.bonus_rate_distractor * PARAMS.n_distractor +
-    (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_speed) * (PARAMS.test_type == 'simple' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
+    (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_speed) * (PARAMS.test_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
   
   let welcome_block = button_trial(`
     # Welcome 😃
@@ -168,9 +168,7 @@ async function initializeExperiment() {
       timeline[0].practice = true
     } else if (i == PARAMS.n_repeat - 1) {
       timeline = timeline.concat(make_afc_pairs())
-      console.log("DOUBLING", timeline.length)
     }
-    console.log("FOOBARS")
     var n_correct = 0
     var time_bonus = 0
     let block = {
@@ -227,18 +225,28 @@ async function initializeExperiment() {
   }
   let distractor = {timeline: [distractor_intro, distractor_task]}
 
+  let [show_left, show_right, choose_left, choose_right] = MULTI_KEYS
   let type_instruct = {
-    simple: `
+    'simple-recall': `
       On each round, we will display one of the pictures you saw before and
       you'll have ${PARAMS.recall_time / 1000} seconds to type in the word that
       was paired with the image.
     `,
-    multi: `
+    'multi-recall': `
       On each round, you will be shown two images and you have to remember the
       word associated with _one_ of them. We will only display one image at a
-      time, but you can switch between them using the F and J keys. As soon as
-      you remember one of the words, press D (for the left image) or K (for the
-      right image). Then type the word into the text box that
+      time, but you can switch between them using the ${show_left} and
+      ${show_right} keys. As soon as you remember one of the words, press
+      ${choose_left} (for the left image) or ${choose_right} (for the right
+      image). Then type the word into the text box that appears and press
+      enter again to submit.
+    `,
+    'multi-recall-flip': `
+      On each round, you will be shown two images and you have to remember the
+      word associated with _one_ of them. We will only display one image at a
+      time, but you can switch between them using the space bar. As soon as
+      you remember one of the words, make sure the associated image is on the
+      screen and press enter. Then type the word into the text box that
       appears and press enter again to submit.
     `
   }[PARAMS.test_type]
@@ -279,13 +287,12 @@ async function initializeExperiment() {
     }
   })
 
-  let critical_timeline = {
-    simple() {
+  function critical_timeline() {
+    if (PARAMS.test_type == 'simple-recall') {
       let timeline = _.shuffle(pairs.low.concat(pairs.high))
       timeline[0].practice = true
       return timeline
-    },
-    multi() {
+    } else {
       let timeline = _.chain(PARAMS.n_pair)
       .range()
       .map(idx => {
@@ -304,10 +311,10 @@ async function initializeExperiment() {
 
   var test_time_bonus = 0
   let test_block = {
-    type: `${PARAMS.test_type}-recall`,
+    type: `${PARAMS.test_type}`,
     bonus: PARAMS.bonus_rate_critical,
     recall_time: PARAMS.recall_time,
-    timeline: critical_timeline[PARAMS.test_type](),
+    timeline: critical_timeline(),
     on_finish(data) {
       console.log("ON FINISH")
       let x = _.last(data.events)

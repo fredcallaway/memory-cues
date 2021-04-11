@@ -8,6 +8,8 @@ jsPsych.plugins["afc"] = (function() {
 
   var SIZE = 300
 
+  var KEYS = ['D', 'F']
+
   var plugin = {}
   
   plugin.info = {
@@ -26,7 +28,7 @@ jsPsych.plugins["afc"] = (function() {
         ### Practice round
 
         - Hit space. A word and two images will appear.
-        - Press the key (**F** or **J**) associated with the image that was paired with the given word.
+        - Press the key (**${KEYS[0]}** or **${KEYS[1]}**) associated with the image that was paired with the given word.
         
       `
       if (max_time != null) {
@@ -101,11 +103,9 @@ jsPsych.plugins["afc"] = (function() {
     .css('display', 'flex')
     .appendTo(stage)
 
-    let keys = ['F', 'J'] 
     let all_imgs = _.shuffle(lure_images.concat([target_image]))
     let key2img = {}
-    _.zip(keys, all_imgs).forEach(([key, img]) => {
-      let div = $('<div>')
+    _.zip(KEYS, all_imgs).forEach(([key, img]) => {let div = $('<div>')
       // .css('float', 'left')
       .css('margin', 'auto')
       .appendTo(img_container)

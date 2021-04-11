@@ -2,9 +2,12 @@
  * Example plugin template
  */
 
+var MULTI_KEYS = ['J', 'K', 'D', 'F'];
 jsPsych.plugins["multi-recall"] = (function() {
 
   var SIZE = 300;
+  let [show_left, show_right, choose_left, choose_right] = MULTI_KEYS
+  // var MULTI_KEYS = ['D', 'F', 'J', 'K', ];
 
   var plugin = {};
   
@@ -29,13 +32,14 @@ jsPsych.plugins["multi-recall"] = (function() {
       .html(markdown(`
         # Practice trial
 
-        - Press F to show the left image. Press J to show the right image.
+        - Press **${show_left}** to show the left image. Press **${show_right}** to show the right image.
         - A timer will start as soon as you show one of the images. Normally
           you'll have ${recall_time/1000} seconds to respond. But for this
           practice round we'll give you 30 seconds.
         - You can flip back and forth as many times as you like. 
         - **For this practice round, please show each image twice!**
-        - If you remember the word for the left image, press D. For the right image, press K.
+        - If you remember the word for the left image, press
+          **${choose_left}**. For the right image, press **${choose_right}**.
         - A text box will appear. Type in the word that was paired with the image you chose.
         - Hit enter/return to submit your response. Make sure to respond before the timer hits zero!
       `))
@@ -134,26 +138,26 @@ jsPsych.plugins["multi-recall"] = (function() {
     // flip between images with key presses
     let choice = null
     while (choice == null) {
-      let {key} = await getKeyPress(['F', 'J', 'D', 'K'])
+      let {key} = await getKeyPress(MULTI_KEYS)
       console.log({key})
       if (timer == null) startTimer();
       if (complete) return;     // trial is already over
       switch (key) {
-        case 'F':
+        case show_left:
           log('show', {option: 0})
           displays[0].show()
           displays[1].hide()
           break
-        case 'J':
+        case show_right:
           log('show', {option: 1})
           displays[1].show()
           displays[0].hide()
           break
-        case 'D':
+        case choose_left:
           log('choose', {option: 0})
           choice = 0
           break
-        case 'K':
+        case choose_right:
           log('choose', {option: 1})
           choice = 1
           break
