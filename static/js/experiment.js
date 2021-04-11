@@ -85,10 +85,10 @@ async function initializeExperiment() {
     # Welcome 😃
 
     In this experiment, you will play a memory game where you learn pairings
-    between images and words. You'll begin with three rounds of learning
-    and testing your knowledge. You will earn a bonus for each correct response
-    you give. Finally, you will complete two additional test rounds where
-    you can earn additional bonus money. The maximum bonus is $${(max_bonus / 100).toFixed(2)}.
+    between images and words. We will alternate between showing you the pairs
+    and quizing you on them in different ways. To make things more fun, we 
+    will pay you a bonus based on how well you remember the pairs.
+    The maximum bonus is $${(max_bonus / 100).toFixed(2)}!
   `, {
     on_finish: psiturk.finishInstructions
   })
