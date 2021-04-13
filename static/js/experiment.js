@@ -1,6 +1,6 @@
 
 const PARAMS = { // = PARAMS =
-  test_type: 'multi-recall',
+  test_type: 'simple-recall',
   overlay: true,
 
   train_presentation_duration: 2000,
@@ -140,9 +140,9 @@ async function initializeExperiment() {
       .value()
   }
 
-  function make_afc_block(i) {
+  function make_afc_block(block_i) {
     let intro = button_trial(`
-      # Test (${i+1} / ${PARAMS.n_repeat})
+      # Test (${block_i+1} / ${PARAMS.n_repeat})
 
       Now we'll see how well you've learned the pairs. On each round,
       you will see a word and two images. ${PARAMS.afc_time == null ? `
@@ -158,15 +158,15 @@ async function initializeExperiment() {
 
       However, to make things harder, we won't tell you which
       ones were correct! 😉
-    ` + ((i == 0) ? "We'll start with a practice round." : ""))
+    ` + ((block_i == 0) ? "We'll start with a practice round." : ""))
 
 
     let timeline = make_afc_pairs()
     
     // Specialize by number
-    if (i == 0) {
+    if (block_i == 0) {
       timeline[0].practice = true
-    } else if (i == PARAMS.n_repeat - 1) {
+    } else if (block_i == PARAMS.n_repeat - 1) {
       timeline = timeline.concat(make_afc_pairs())
     }
     var n_correct = 0
@@ -182,6 +182,7 @@ async function initializeExperiment() {
           let prop_left = (PARAMS.afc_bonus_time - data.rt) / PARAMS.afc_bonus_time
           time_bonus += prop_left * PARAMS.bonus_rate_speed
         }
+        data.block = block_i + 1
       }
     }
     
