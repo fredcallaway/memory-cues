@@ -73,7 +73,7 @@ def parse_simple(row):
             return x
     assert False
 
-def parse_multi(row):
+def parse_multi_flip(row):
     ev = literal_eval(row.events)
     t = literal_eval(row.trial)
     x = {
@@ -112,6 +112,63 @@ def parse_multi(row):
             x['presentation_times'].append(e['time'] - begin_fix)
             return x
 
+def parse_multi(row):
+    ev = literal_eval(row.events)
+    t = literal_eval(row.trial)
+    x = {
+        'wid': row.wid,
+        'practice': t.get('practice', False),
+    }
+    left, right = 0, 1
+    left_word = t['options'][left]['word']
+    right_word = t['options'][right]['word']
+
+    x['presentation_times'] = []
+    start = float('nan')
+    shown = None
+    begin_fix = None
+    for e in ev:
+        if e['event'] == 'show':
+            if e['option'] == shown:  # showing the already on screen option, ignore this
+                continue
+            if shown is None:  # first presentation
+                if e['option'] == left:
+                    x['first_seen'] = 'left'
+                    x['first_word'] = left_word
+                    x['second_word'] = right_word
+                else:
+                    x['first_seen'] = 'right'
+                    x['first_word'] = right_word
+                    x['second_word'] = left_word
+                start = e['time']
+            else:  # non-first
+                x['presentation_times'].append(e['time'] - begin_fix)
+            begin_fix = e['time']
+            shown = e['option']
+
+        elif e['event'] == 'choose':
+            x['choice'] = ['left', 'right'][e['option']]
+            x['choice_rt'] = e['time'] - start
+            if begin_fix is not None:
+                x['presentation_times'].append(e['time'] - begin_fix)
+
+        elif e['event'] == 'type' and 'typing_rt' not in x:
+            x['typing_rt'] = e['time'] - start
+
+        elif e['event'] == 'response':
+            x['word'] = e['word']
+            x['response'] = e['response']
+            x['response_rt'] = e['time'] - start
+            x['response_type'] = classify_response(x['word'], e['response'])
+
+            return x
+
+        elif e['event'] == 'timeout':
+            x['response_type'] = 'timeout'
+            if 'choice' not in x:
+                x['presentation_times'].append(e['time'] - begin_fix)
+            return x
+
 
 
 def parse_afc(row):
@@ -142,8 +199,11 @@ def main(codeversion):
 
     def process(kind):
         try:
+
             parser = {'simple-recall': parse_simple, 'multi-recall': parse_multi, 'afc': parse_afc}[kind]
             data = load_raw(kind).apply(parser, axis=1, result_type='expand')
+            if kind == 'afc' and codeversion == 'v3.4':
+                data['block'] = ([1] * 40 + [2] * 80) * len(data.wid.unique())   
         except FileNotFoundError:
             pass
         else:
@@ -162,11 +222,9 @@ def main(codeversion):
     print(f'{n_incomplete} participants did not complete the experiment')
     pdf = pdf.loc[pdf.completed == True]
 
-    afc_scores = pdf.pop('afc_scores').apply(
-        lambda x: json.dumps(literal_eval(x))  # None if pd.isna(x) else
-    )
-    afc_scores
-    import IPython, time; IPython.embed(); time.sleep(0.5)
+    # afc_scores = pdf.pop('afc_scores').apply(
+    #     lambda x: json.dumps(literal_eval(x))  # None if pd.isna(x) else
+    # )
     pdf.to_csv(out + 'participants.csv')
 
 
