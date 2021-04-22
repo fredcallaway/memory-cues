@@ -1,6 +1,6 @@
 
 const PARAMS = { // = PARAMS =
-  test_type: 'simple-recall',
+  test_type: 'multi-recall',
   overlay: true,
 
   train_presentation_duration: 2000,
