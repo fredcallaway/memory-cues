@@ -180,6 +180,7 @@ def parse_afc(row):
 
     return {
         'wid': row.wid,
+        'block': int(row.block),
         'practice': t.get('practice', False),
         'rt': row.rt,
         'word': t['word'],
