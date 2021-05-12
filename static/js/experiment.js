@@ -221,9 +221,12 @@ async function initializeExperiment() {
       quickly (and correctly), so try to respond as fast as you can
       (while staying accurate)!
 
-      However, to make things harder, we won't tell you which
-      ones were correct! 😉
+      Note: if you don't remember the word for the image, you can just leave
+      the text box blank and hit enter. There's no penalty for guessing though!
     ` + ((block_i == 0) ? "We'll start with a practice round." : ""))
+    
+      // However, to make things harder, we won't tell you which
+      // ones were correct! 😉
 
     let timeline = _.shuffle(pairs.low.concat(pairs.high))
     timeline = JSON.parse(JSON.stringify(timeline))  // deep clone
