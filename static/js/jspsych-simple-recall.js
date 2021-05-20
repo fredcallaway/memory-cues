@@ -14,9 +14,9 @@ jsPsych.plugins["simple-recall"] = (function() {
   };
 
   plugin.trial = async function(display_element, trial) {
-    console.log('begin simple-recall trial', trial.word)
+    // console.log('begin simple-recall trial', trial)
     let display = $(display_element);
-    let {word, image, practice=false, feedback=true, bonus, recall_time} = trial;
+    let {word, image, practice=false, bonus, recall_time} = trial;
 
     let header = practice ?
     `
@@ -36,13 +36,12 @@ jsPsych.plugins["simple-recall"] = (function() {
 
     let data = {
       trial,
-      correct: false,
       events: []
     };
     let start_time = performance.now();
 
     function log(event, info) {
-      // console.log(event, info)
+      console.log(event, info)
       data.events.push({
         time: performance.now() - start_time,
         event,
@@ -56,7 +55,7 @@ jsPsych.plugins["simple-recall"] = (function() {
     .css('margin-top', 40)
     .appendTo(display)
 
-    function showFeedback(time=1500) {
+    function showFeedback() {
       stage.empty()
       let fb = $('<div>')
       .css('font-size', '32pt')
@@ -64,7 +63,7 @@ jsPsych.plugins["simple-recall"] = (function() {
       .css('margin-top', 120)
       .appendTo(stage)
 
-      sleep(time)
+      sleep(1500)
       .then(()=> {
         display.empty()
         jsPsych.finishTrial(data)
@@ -110,26 +109,21 @@ jsPsych.plugins["simple-recall"] = (function() {
       }
     })
     .keypress(function(event) {
+      console.log(event.key)
       log('type', {key: event.key, input: input.val()});
       if (event.keyCode == 13 || event.which == 13) {  // press enter
         responded = true  // disable timeout
         let response = input.val().trim().toLowerCase();
         log('response', {response});
 
-        data.correct = response == word
-        data.rt = performance.now() - start_time
-        if (data.correct || practice) {
+        if (response == word || practice) {
           BONUS += bonus
         }
 
-        if (feedback) {
-          if (response == word) {
-            showFeedback().text(`Correct! +${bonus}¢`).css('color', '#080')
-          } else {
-            showFeedback().text('Incorrect').css('color', '#b00')
-          }
+        if (response == word) {
+          showFeedback().text(`Correct! +${bonus}¢`).css('color', '#080')
         } else {
-          showFeedback(500)
+          showFeedback().text('Incorrect').css('color', '#b00')
         }
       }
     });

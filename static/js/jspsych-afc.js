@@ -2,6 +2,7 @@
  * Example plugin template
  */
 
+var AFC_LOG = []
 
 jsPsych.plugins["afc"] = (function() {
 
@@ -142,6 +143,7 @@ jsPsych.plugins["afc"] = (function() {
     let correct = response == target_image
     if (correct || practice) BONUS += 1
     log('response', {response, key})
+    AFC_LOG.push({word, correct, rt})
     await sleep(1000)
     display.empty()
     data.correct = correct
