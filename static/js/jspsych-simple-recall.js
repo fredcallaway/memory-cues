@@ -4,7 +4,7 @@
 
 jsPsych.plugins["simple-recall"] = (function() {
 
-  var SIZE = 300;
+    var SIZE = 300;
 
   var plugin = {};
   var timer
@@ -18,7 +18,6 @@ jsPsych.plugins["simple-recall"] = (function() {
     // console.log('begin simple-recall trial', trial)
     let display = $(display_element);
     let {word, image, practice=false, time_bonus=0, bonus, recall_time} = trial;
-    console.log(word)
 
     let header = practice ?
     `
@@ -33,6 +32,7 @@ jsPsych.plugins["simple-recall"] = (function() {
         when you respond. You still get the time bonus if you give a blank
         response, but not if you give an incorrect response.
       - If the timer runs out before you respond, you get nothing.
+      - This practice round does not count towards your bonus.
     ` : ` `
       // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
@@ -46,6 +46,12 @@ jsPsych.plugins["simple-recall"] = (function() {
       events: []
     };
     let start_time = performance.now();
+
+    function add_bonus(bonus) {
+      if (!practice) {
+        BONUS += bonus
+      }
+    }
 
     function log(event, info) {
       console.log(event, info)
@@ -127,7 +133,7 @@ jsPsych.plugins["simple-recall"] = (function() {
         let error = false
 
         if (response == word) {
-          BONUS += bonus
+          add_bonus(bonus)
           $('<p>')
           .text(`Correct! +${bonus}¢`)
           .css('color', '#080')
@@ -138,7 +144,7 @@ jsPsych.plugins["simple-recall"] = (function() {
           .css('color', '#888')
           .appendTo(feedback)
         } else {
-          BONUS -= bonus
+          add_bonus(-bonus)
           error = true
           $('<p>')
           .text(`Incorrect! -${bonus}¢`)
@@ -151,7 +157,7 @@ jsPsych.plugins["simple-recall"] = (function() {
 
         if (!error && time_bonus > 0) {
           let tb = Math.round(10 * time_bonus * timer.seconds_left) / 10
-          BONUS += tb
+          add_bonus(tb)
           if (tb > 0) {
             $('<p>')
             .text(`Time bonus: +${tb}¢`)

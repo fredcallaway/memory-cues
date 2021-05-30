@@ -10,6 +10,7 @@ const PARAMS = { // = PARAMS =
   
   n_pair: 20,
   n_repeat: 2,
+  n_practice_critical: 3,
   n_distractor: 10,
   
   bonus_rate_critical: 2,
@@ -25,7 +26,7 @@ psiturk.recordUnstructuredData('params', PARAMS);
 
 const PROLIFIC_CODE = '6BF8D28B'
 var BONUS = 0
-fmt_bonus = () => `$${(BONUS / 100).toFixed(2)}`
+fmt_bonus = () => `$${(Math.max(BONUS, 0) / 100).toFixed(2)}`
 
 function fmt_cents(cents) {
   if (cents == 1) return 'one cent'
@@ -77,7 +78,7 @@ async function initializeExperiment() {
   let all_pairs = pairs.low.concat(pairs.high)
   XX = all_pairs
 
-  let n_crit = (PARAMS.test_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
+  let n_crit = (PARAMS.test_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair) - PARAMS.n_practice_critical
   let max_bonus = 
     (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat +
     PARAMS.bonus_rate_distractor * PARAMS.n_distractor +
@@ -236,9 +237,9 @@ async function initializeExperiment() {
       On each round, we will display one of the pictures you saw before and
       you'll have ${PARAMS.recall_time / 1000} seconds to type in the word that
       was paired with the image. You will earn ${PARAMS.bonus_rate_critical} cents
-      for every correct response. But be careful because you will also lose
+      for every correct response. But you will lose
       ${PARAMS.bonus_rate_critical} cents for every *incorrect* response. **There is
-      no penalty for leaving the text box blank**
+      no penalty for leaving the text box blank.**
 
       Additionally, you will earn a tenth of a cent for each second left on the timer
       when you respond. **You still earn this bonus for empty responses, but not
@@ -246,6 +247,9 @@ async function initializeExperiment() {
       to give up quickly (leaving the text box empty) so that you can get the time
       bonus. It is *not* a good idea to guess, unless you are pretty sure
       that you remembered the right word.
+
+      The first ${PARAMS.n_practice_critical} rounds are practice,
+      and don't count towards your bonus.
     `,
     'multi-recall': `
       On each round, you will be shown two images and you have to remember the
@@ -305,7 +309,9 @@ async function initializeExperiment() {
   function critical_timeline() {
     if (PARAMS.test_type == 'simple-recall') {
       let timeline = _.shuffle(pairs.low.concat(pairs.high))
-      timeline[0].practice = true
+      for (let i of _.range(PARAMS.n_practice_critical)) {
+        timeline[i].practice = true
+      }
       return timeline
     } else {
       let timeline = _.chain(PARAMS.n_pair)
