@@ -5,3 +5,7 @@ bin/__pycache__/
 __pycache__/
 participants.db
 data
+bin/fetch
+fred_afc_log.json
+scratch.js
+scratch.r
