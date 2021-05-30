@@ -7,6 +7,7 @@ jsPsych.plugins["simple-recall"] = (function() {
   var SIZE = 300;
 
   var plugin = {};
+  var timer
   
   plugin.info = {
     name: "PLUGIN-NAME",
@@ -16,7 +17,8 @@ jsPsych.plugins["simple-recall"] = (function() {
   plugin.trial = async function(display_element, trial) {
     // console.log('begin simple-recall trial', trial)
     let display = $(display_element);
-    let {word, image, practice=false, bonus, recall_time} = trial;
+    let {word, image, practice=false, time_bonus=0, bonus, recall_time} = trial;
+    console.log(word)
 
     let header = practice ?
     `
@@ -25,7 +27,12 @@ jsPsych.plugins["simple-recall"] = (function() {
       - Hit space. An image, text box, and timer will appear.
       - Type the word that was paired with the image into the text box.
       - Hit enter to submit your response.
-      - Make sure to respond before the timer hits zero!
+      - You will earn 2¢ for a correct response but lose 2¢ for an incorrect
+        response. If you leave the box blank, you don't lose anything.
+      - You will earn 0.1¢ for every second left on the timer
+        when you respond. You still get the time bonus if you give a blank
+        response, but not if you give an incorrect response.
+      - If the timer runs out before you respond, you get nothing.
     ` : ` `
       // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
@@ -116,28 +123,59 @@ jsPsych.plugins["simple-recall"] = (function() {
         let response = input.val().trim().toLowerCase();
         log('response', {response});
 
-        if (response == word || practice) {
+        let feedback = $('<div>')
+        let error = false
+
+        if (response == word) {
           BONUS += bonus
+          $('<p>')
+          .text(`Correct! +${bonus}¢`)
+          .css('color', '#080')
+          .appendTo(feedback)
+        } else if (response == '') {
+          $('<p>')
+          .text(`No response. +0¢`)
+          .css('color', '#888')
+          .appendTo(feedback)
+        } else {
+          BONUS -= bonus
+          error = true
+          $('<p>')
+          .text(`Incorrect! -${bonus}¢`)
+          .css('color', '#b00')
+          .appendTo(feedback)
+        }
+        // if (response != word && practice) {
+        //   BONUS += bonus
+        // }
+
+        if (!error && time_bonus > 0) {
+          let tb = Math.round(10 * time_bonus * timer.seconds_left) / 10
+          BONUS += tb
+          if (tb > 0) {
+            $('<p>')
+            .text(`Time bonus: +${tb}¢`)
+            .css('color', '#080')
+            .appendTo(feedback)
+          }
         }
 
         if (response == word) {
-          showFeedback().text(`Correct! +${bonus}¢`).css('color', '#080')
+          showFeedback().append(feedback)
         } else {
-          showFeedback().text('Incorrect').css('color', '#b00')
+          showFeedback().append(feedback)
         }
       }
     });
 
     // TIMER
-    let timer = makeTimer(recall_time / 1000, stage)
-    timer.then(() => {
+    timer = makeTimer(recall_time / 1000, stage)
+    timer.promise.then(() => {
       if (!responded) {
         log('timeout')
-        showFeedback().text('Timeout').css('color', '#b00')
+        showFeedback().text('Timeout').css('color', '#888')
       }
     })
-
-    
   } // plugin.trial
 
   return plugin;

@@ -1,6 +1,6 @@
 
 const PARAMS = { // = PARAMS =
-  test_type: 'multi-recall',
+  test_type: 'simple-recall',
   overlay: true,
 
   train_presentation_duration: 2000,
@@ -13,6 +13,7 @@ const PARAMS = { // = PARAMS =
   n_distractor: 10,
   
   bonus_rate_critical: 2,
+  bonus_rate_critical_speed: 1/10,
   bonus_rate_afc: 1,
   bonus_rate_distractor: 1,
   bonus_rate_speed: 0.25,
@@ -76,10 +77,11 @@ async function initializeExperiment() {
   let all_pairs = pairs.low.concat(pairs.high)
   XX = all_pairs
 
+  let n_crit = (PARAMS.test_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
   let max_bonus = 
     (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat +
     PARAMS.bonus_rate_distractor * PARAMS.n_distractor +
-    (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_speed) * (PARAMS.test_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair)
+    (PARAMS.bonus_rate_critical + (PARAMS.recall_time / 1000 ) * PARAMS.bonus_rate_speed) * n_crit
   
   let welcome_block = button_trial(`
     # Welcome 😃
@@ -226,12 +228,24 @@ async function initializeExperiment() {
   }
   let distractor = {timeline: [distractor_intro, distractor_task]}
 
+  assert(PARAMS.bonus_rate_critical_speed == 0.1)
+
   let [show_left, show_right, choose_left, choose_right] = MULTI_KEYS
   let type_instruct = {
     'simple-recall': `
       On each round, we will display one of the pictures you saw before and
       you'll have ${PARAMS.recall_time / 1000} seconds to type in the word that
-      was paired with the image.
+      was paired with the image. You will earn ${PARAMS.bonus_rate_critical} cents
+      for every correct response. But be careful because you will also lose
+      ${PARAMS.bonus_rate_critical} cents for every *incorrect* response. **There is
+      no penalty for leaving the text box blank**
+
+      Additionally, you will earn a tenth of a cent for each second left on the timer
+      when you respond. **You still earn this bonus for empty responses, but not
+      for incorrect responses**. If you don't remember the word, it might be best
+      to give up quickly (leaving the text box empty) so that you can get the time
+      bonus. It is *not* a good idea to guess, unless you are pretty sure
+      that you remembered the right word.
     `,
     'multi-recall': `
       On each round, you will be shown two images and you have to remember the
@@ -314,18 +328,19 @@ async function initializeExperiment() {
   let test_block = {
     type: `${PARAMS.test_type}`,
     bonus: PARAMS.bonus_rate_critical,
+    time_bonus: PARAMS.bonus_rate_critical_speed,
     recall_time: PARAMS.recall_time,
     timeline: critical_timeline(),
-    on_finish(data) {
-      console.log("ON FINISH")
-      let x = _.last(data.events)
-      if (x.event == "response" && x.word == x.response) {
-        let rt = x.time - data.events[0].time
-        let prop_left = (PARAMS.recall_time - rt) / PARAMS.recall_time
-        prop_left = Math.max(0, prop_left)
-        test_time_bonus += prop_left * PARAMS.bonus_rate_speed
-      }
-    },
+    // on_finish(data) {
+    //   console.log("ON FINISH")
+    //   let x = _.last(data.events)
+    //   if (x.event == "response" && x.word == x.response) {
+    //     let rt = x.time - data.events[0].time
+    //     let prop_left = (PARAMS.recall_time - rt) / PARAMS.recall_time
+    //     prop_left = Math.max(0, prop_left)
+    //     test_time_bonus += prop_left * PARAMS.bonus_rate_speed
+    //   }
+    // },
   }
 
   let debrief = {
