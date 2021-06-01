@@ -126,7 +126,7 @@ jsPsych.plugins["multi-recall"] = (function() {
     let timer = null
     function startTimer() {
       timer = makeTimer(recall_time / 1000, timer_container)
-      timer.then(() => {
+      timer.promise.then(() => {
         if (!complete) {
           complete = true
           log('timeout')
