@@ -1,6 +1,6 @@
 
 const PARAMS = { // = PARAMS =
-  test_type: 'simple-recall',
+  test_type: 'multi-recall',
   overlay: true,
 
   train_presentation_duration: 2000,
@@ -36,12 +36,6 @@ XX = null
 
 var CRITICAL_PAIRS
 
-if (searchParams.get('debug_multi', false)) {
-  AFC_LOG = [{"word":"crook","correct":false,"rt":3422},{"word":"fellow","correct":true,"rt":2233},{"word":"mister","correct":false,"rt":1351},{"word":"magazine","correct":true,"rt":2937},{"word":"tulip","correct":false,"rt":2808},{"word":"seagull","correct":true,"rt":3688},{"word":"mister","correct":false,"rt":1616},{"word":"crook","correct":false,"rt":3350},{"word":"tulip","correct":true,"rt":848},{"word":"seagull","correct":true,"rt":725},{"word":"fellow","correct":true,"rt":1467},{"word":"magazine","correct":true,"rt":1673}]
-  PARAMS.n_pair = 3
-  searchParams.set('skip', 8)
-}
-
 function button_trial(html, opts={}) {
   return {
     stimulus: () => {
@@ -76,7 +70,14 @@ async function initializeExperiment() {
   })
   PAIRS = pairs
   let all_pairs = pairs.low.concat(pairs.high)
-  XX = all_pairs
+
+  if (searchParams.get('debug_multi', false)) {
+    AFC_LOG = [{"word":"pig","correct":false,"rt":6006},{"word":"goddess","correct":false,"rt":458},{"word":"parrot","correct":true,"rt":214},{"word":"suburb","correct":true,"rt":4199},{"word":"donor","correct":true,"rt":695},{"word":"penguin","correct":true,"rt":518},{"word":"suburb","correct":false,"rt":6440},{"word":"goddess","correct":false,"rt":560},{"word":"penguin","correct":false,"rt":1024},{"word":"pig","correct":true,"rt":520},{"word":"parrot","correct":true,"rt":328},{"word":"donor","correct":true,"rt":564},{"word":"goddess","correct":false,"rt":535},{"word":"suburb","correct":false,"rt":6611},{"word":"parrot","correct":true,"rt":663},{"word":"donor","correct":true,"rt":645},{"word":"pig","correct":false,"rt":721},{"word":"penguin","correct":true,"rt":488}]
+    all_pairs = [{"word":"donor","image":"../static/stimuli/images/subway/sun_apsbdxitmzdgpeyn.jpg"},{"word":"goddess","image":"../static/stimuli/images/laundryroom/sun_amdxqjichaqshdel.jpg"},{"word":"suburb","image":"../static/stimuli/images/auditorium/sun_ahcmaddzrcfxzuuz.jpg"},{"word":"penguin","image":"../static/stimuli/images/volcano/sun_aacjsxcwmkbgvpmb.jpg"},{"word":"pig","image":"../static/stimuli/images/pool/sun_alkvkavnnunmdavq.jpg"},{"word":"parrot","image":"../static/stimuli/images/temple/sun_ahuwbjbhgegvnlsq.jpg"}]
+    PARAMS.n_pair = 3
+    searchParams.set('skip', 6)
+  }
+
 
   let n_crit = (PARAMS.test_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair) - PARAMS.n_practice_critical
   let max_bonus = 
@@ -283,26 +284,31 @@ async function initializeExperiment() {
     // Like before, you will earn a little extra money for responding quickly,
     // so try to be as fast as you can while maintaining accuracy!
     on_finish() {
-      console.log('building critical trials')
-      // build the critical trials
-      let scores = _.chain(AFC_LOG)
-      .groupBy("word")
-      .mapObject(record => 
-        mean(record.map(({correct, rt}) => Math.log(rt)))
-      )
-      .value()
-      psiturk.recordUnstructuredData('afc_scores', scores)
-      // console.log('scores', scores)
+      if (PARAMS.test_type == 'multi-recall') {
+        console.log('building critical trials')
+        // console.log(JSON.stringify(AFC_LOG))
+        // console.log(JSON.stringify(all_pairs))
+        // build the critical trials
+        let scores = _.chain(AFC_LOG)
+        .groupBy("word")
+        .mapObject(record => 
+          mean(record.map(({correct, rt}) => Math.log(rt)))
+        )
+        .value()
+        // console.log(scores)
+        psiturk.recordUnstructuredData('afc_scores', scores)
+        // console.log('scores', scores)
 
-      let sorted_pairs = pairs.low.concat(pairs.high)
-      .sort(({word}) => scores[word])
+        let sorted_pairs = _.sortBy(all_pairs, ({word}) => scores[word])
+        // console.log(sorted_pairs)
 
-      CRITICAL_PAIRS = _.zip(
-        sorted_pairs.slice(0, PARAMS.n_pair),
-        sorted_pairs.slice(PARAMS.n_pair).reverse()
-      )
-      psiturk.recordUnstructuredData('critical_pairs', CRITICAL_PAIRS)
-      // console.log('CRITICAL_PAIRS', CRITICAL_PAIRS)
+        CRITICAL_PAIRS = _.zip(
+          sorted_pairs.slice(0, PARAMS.n_pair),
+          sorted_pairs.slice(PARAMS.n_pair).reverse()
+        )
+        psiturk.recordUnstructuredData('critical_pairs', CRITICAL_PAIRS)
+        // console.log('CRITICAL_PAIRS', CRITICAL_PAIRS)
+      }
     }
   })
 
