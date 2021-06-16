@@ -9,7 +9,7 @@ def main(codeversion):
     bonus = pd.DataFrame({
         'participant_id': x[0].apply(lambda x: x.split(':')[0]),
         'bonus': x[2].astype(float)
-    }).set_index('participant_id').bonus
+    }).set_index('participant_id').bonus.round(2)
 
     file = f'data/human_raw/{codeversion}/bonus.csv'
     bonus.to_csv(file, index=True, header=False)

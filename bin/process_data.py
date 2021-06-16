@@ -180,7 +180,7 @@ def parse_afc(row):
 
     return {
         'wid': row.wid,
-        'block': int(row.block),
+        'block': int(getattr(row, 'block', 0)),
         'practice': t.get('practice', False),
         'rt': row.rt,
         'word': t['word'],
@@ -218,16 +218,16 @@ def main(codeversion):
     pdf = load_raw('participants').set_index('wid')
     pdf['math_correct'] = load_raw('math').set_index('wid').num_correct
 
-    pdf.pop('critical_pairs')
     n_incomplete = (pdf.completed != True).sum()
     print(f'{n_incomplete} participants did not complete the experiment')
     pdf = pdf.loc[pdf.completed == True]
-
-    # afc_scores = pdf.pop('afc_scores').apply(
-    #     lambda x: json.dumps(literal_eval(x))  # None if pd.isna(x) else
-    # )
+    pdf['afc_scores'] = pdf.pop('afc_scores').apply(
+        lambda x: json.dumps(literal_eval(x))  # None if pd.isna(x) else
+    )
+    pdf['critical_pairs'] = pdf.pop('critical_pairs').apply(
+        lambda x: json.dumps(literal_eval(x))  # None if pd.isna(x) else
+    )
     pdf.to_csv(out + 'participants.csv')
-
 
     survey_raw = load_raw('survey-text').set_index('wid').responses
     survey = pd.DataFrame(list(survey_raw.apply(literal_eval)))
@@ -237,10 +237,6 @@ def main(codeversion):
         os.system(f'rsync -av data/processed/{codeversion}/ /Users/fred/Projects/memory/data/{codeversion}/')
 
     bonus.main(codeversion)
-
-
-
-
 
 if __name__ == '__main__':
     Fire(main)
