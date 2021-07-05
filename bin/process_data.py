@@ -49,7 +49,6 @@ def parse_simple(row):
     x = {'wid': row.wid, 'word': t['word'], 'image': t['image'], 'practice': t.get('practice', False)}
     x['word_type'] = classify_word(x['word'])
 
-
     for e in ev:
         # if e['event'] == 'start trial':
         if e['event'] == 'show image':
@@ -59,7 +58,9 @@ def parse_simple(row):
             begin_response = e['time']
             x['rt'] = round(begin_response - start)
         
-        elif e['event'] == 'type' and 'typing_rt' not in x:
+        elif e['event'] == 'type' and 'typing_rt':
+            if round(e['time'] - start) < 30:
+                continue  # this is probably a mispress
             x['typing_rt'] = round(e['time'] - start)
         
         elif e['event'] == 'response':
@@ -235,6 +236,7 @@ def main(codeversion):
 
     if os.path.isdir('/Users/fred/Projects/memory/data/'):    
         os.system(f'rsync -av data/processed/{codeversion}/ /Users/fred/Projects/memory/data/{codeversion}/')
+        print(f'wrote /Users/fred/Projects/memory/data/{codeversion}/')
 
     bonus.main(codeversion)
 

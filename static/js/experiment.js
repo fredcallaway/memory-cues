@@ -1,21 +1,24 @@
 
 const PARAMS = { // = PARAMS =
-  test_type: 'multi-recall',
+  pretest_type: 'simple-recall',
+  critical_type: 'multi-recall',
   overlay: true,
+  fancy_critical: false,  
 
   train_presentation_duration: 2000,
   recall_time: 15000,
   afc_time: null,
   afc_bonus_time: 5000,
   
-  n_pair: 20,
+  n_pair: 10,
   n_repeat: 2,
   n_practice_critical: 3,
   n_distractor: 10,
-  
+
   bonus_rate_critical: 2,
   bonus_rate_critical_speed: 1/10,
   bonus_rate_afc: 1,
+  bonus_rate_pretest: 1,
   bonus_rate_distractor: 1,
   bonus_rate_speed: 0.25,
 }
@@ -35,6 +38,7 @@ function fmt_cents(cents) {
 XX = null
 
 var CRITICAL_PAIRS
+var PRETEST_LOG = []
 
 function button_trial(html, opts={}) {
   return {
@@ -51,8 +55,6 @@ function button_trial(html, opts={}) {
     ...opts
   }
 }
-
-
 
 async function initializeExperiment() {
   LOG_DEBUG('initializeExperiment');
@@ -78,12 +80,12 @@ async function initializeExperiment() {
     searchParams.set('skip', 6)
   }
 
-
-  let n_crit = (PARAMS.test_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair) - PARAMS.n_practice_critical
-  let max_bonus = 
-    (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat +
-    PARAMS.bonus_rate_distractor * PARAMS.n_distractor +
-    (PARAMS.bonus_rate_critical + (PARAMS.recall_time / 1000 ) * PARAMS.bonus_rate_speed) * n_crit
+  // let afc_bonus = (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat
+  let pretest_bonus = (PARAMS.bonus_rate_pretest + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * (1+PARAMS.n_repeat)
+  let distractor_bonus = PARAMS.bonus_rate_distractor * PARAMS.n_distractor
+  let n_critical = (PARAMS.critical_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair) - PARAMS.n_practice_critical
+  let critical_bonus = (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_speed) * n_critical
+  let max_bonus = pretest_bonus + distractor_bonus + critical_bonus
   
   let welcome_block = button_trial(`
     # Welcome 😃
@@ -155,12 +157,12 @@ async function initializeExperiment() {
         Then you'll have ${PARAMS.afc_time / 1000} seconds to select the image that goes with the word.
       `}
 
-      You will earn ${fmt_cents(PARAMS.bonus_rate_distractor)} for each
+      You will earn ${fmt_cents(PARAMS.bonus_rate_afc)} for each
       correct answer. You will also receive a small extra bonus for answering
       quickly (and correctly), so try to respond as fast as you can
       (while staying accurate)!
 
-      However, to make things harder, we won't tell you which
+      To make things harder, we won't tell you which
       ones were correct! 😉
     ` + ((block_i == 0) ? "We'll start with a practice round." : ""))
 
@@ -181,6 +183,9 @@ async function initializeExperiment() {
       bonus_rate: PARAMS.bonus_rate_afc,
       timeline,
       on_finish: data => {
+        let {correct, rt} = data
+        PRETEST_LOG.push({word: data.trial.word, correct, rt})
+        console.log("PRETEST_LOG", PRETEST_LOG)
         n_correct += data.correct
         if (data.correct) {
           let prop_left = (PARAMS.afc_bonus_time - data.rt) / PARAMS.afc_bonus_time
@@ -206,10 +211,88 @@ async function initializeExperiment() {
     return {timeline: [intro, block, feedback]}
   }
 
-  let train_afc_blocks = []
+  function make_simple_block(block_i) {
+    let intro = button_trial(`
+      # Test (${block_i+1} / ${PARAMS.n_repeat})
+
+      Now we'll see how well you've learned the pairs. 
+      On each round, we will display one of the pictures you saw before and
+      you'll have ${PARAMS.recall_time / 1000} seconds to type in the word that
+      was paired with the image.
+
+      You will earn ${fmt_cents(PARAMS.bonus_rate_pretest)} for each
+      correct answer. You will also receive a small extra bonus for answering
+      quickly (and correctly), so try to respond as fast as you can
+      (while staying accurate)!
+
+      Note: if you don't remember the word for the image, you can just leave
+      the text box blank and hit enter. There's no penalty for guessing though!
+    ` + ((block_i == 0) ? "We'll start with a practice round." : ""))
+    
+      // However, to make things harder, we won't tell you which
+      // ones were correct! 😉
+
+    let timeline = _.shuffle(pairs.low.concat(pairs.high))
+    timeline = JSON.parse(JSON.stringify(timeline))  // deep clone
+    
+    // Specialize by number
+    if (block_i == 0) {
+      timeline[0].practice = true
+    } else if (block_i == PARAMS.n_repeat - 1) {
+      timeline = timeline.concat(_.shuffle(pairs.low.concat(pairs.high)))
+    }
+    var n_correct = 0
+    var time_bonus = 0
+    let block = {
+      type: 'simple-recall',
+      feedback: false,
+      max_time: PARAMS.afc_time,
+      bonus: PARAMS.bonus_rate_pretest,
+      recall_time: PARAMS.recall_time,
+      timeline,
+      on_finish: data => {
+        let {correct, rt} = data
+        PRETEST_LOG.push({word: data.trial.word, correct, rt})
+        console.log("PRETEST_LOG", PRETEST_LOG)
+        n_correct += data.correct
+        if (data.correct) {
+          let prop_left = (PARAMS.recall_time - data.rt) / PARAMS.recall_time
+          if (prop_left < 0) {
+            console.log(`WARNING: prop_left = ${prop_left}`)
+            prop_left = 0
+          }
+          time_bonus += prop_left * PARAMS.bonus_rate_speed
+        }
+        console.log('time_bonus = ', time_bonus)
+        data.block = block_i + 1
+      }
+    }
+    
+    let feedback = button_trial(() => {
+      // saveData()
+      time_bonus = Math.ceil(time_bonus)
+      BONUS += time_bonus
+      return `
+        # Results
+
+        - You were correct on ${n_correct} out of ${block.timeline.length} rounds. 
+           That's ${fmt_cents(n_correct * PARAMS.bonus_rate_afc)} added to your bonus.
+        - You earned ${fmt_cents(time_bonus)} for responding quickly.
+        - Your current bonus is ${fmt_bonus()}.
+      `
+    })
+    return {timeline: [intro, block, feedback]}
+  }
+
+  let make_test_block = {
+    'afc': make_afc_block,
+    'simple-recall': make_simple_block
+  }[PARAMS.pretest_type]
+
+  let train_test_blocks = []
   _.range(PARAMS.n_repeat).forEach(i => {
-    train_afc_blocks.push(make_train_block(i))
-    train_afc_blocks.push(make_afc_block(i))
+    train_test_blocks.push(make_train_block(i))
+    train_test_blocks.push(make_test_block(i))
   })
 
   let distractor_intro = button_trial(`
@@ -269,30 +352,33 @@ async function initializeExperiment() {
       screen and press enter. Then type the word into the text box that
       appears and press enter again to submit.
     `
-  }[PARAMS.test_type]
+  }[PARAMS.critical_type]
 
-  let test_instruct = button_trial(`
+  let critical_instruct = button_trial(`
     # Final test
 
     You're almost done! In this last section, we will test your knowledge one
     more time. But it will be a little different this time. ${type_instruct}
     
-    These rounds are harder, so you'll earn a higher bonus,
-    ${PARAMS.bonus_rate_critical} cents for each correct response.
-    We'll start with a practice round.
+    You will earn a higher bonus on these rounds,
+    ${PARAMS.bonus_rate_critical} cents for each correct response. You'll 
+    get a small additional bonus for responding quickly like before.
+    We'll start with a practice round. 
   `, {
     // Like before, you will earn a little extra money for responding quickly,
     // so try to be as fast as you can while maintaining accuracy!
     on_finish() {
-      if (PARAMS.test_type == 'multi-recall') {
+      if (PARAMS.critical_type == 'multi-recall') {
         console.log('building critical trials')
         // console.log(JSON.stringify(AFC_LOG))
         // console.log(JSON.stringify(all_pairs))
         // build the critical trials
-        let scores = _.chain(AFC_LOG)
+        let scores = _.chain(PRETEST_LOG)
         .groupBy("word")
         .mapObject(record => 
-          mean(record.map(({correct, rt}) => Math.log(rt)))
+          mean(record.map(({correct, rt}) => {
+            PARAMS.fancy_critical ? Math.log(rt) : 0
+          }))
         )
         .value()
         // console.log(scores)
@@ -313,7 +399,7 @@ async function initializeExperiment() {
   })
 
   function critical_timeline() {
-    if (PARAMS.test_type == 'simple-recall') {
+    if (PARAMS.critical_type == 'simple-recall') {
       let timeline = _.shuffle(pairs.low.concat(pairs.high))
       for (let i of _.range(PARAMS.n_practice_critical)) {
         timeline[i].practice = true
@@ -336,29 +422,29 @@ async function initializeExperiment() {
     }
   }
 
-  var test_time_bonus = 0
-  let test_block = {
-    type: `${PARAMS.test_type}`,
+  var critical_time_bonus = 0
+  let critical_block = {
+    type: `${PARAMS.critical_type}`,
     bonus: PARAMS.bonus_rate_critical,
     time_bonus: PARAMS.bonus_rate_critical_speed,
     recall_time: PARAMS.recall_time,
     timeline: critical_timeline(),
-    // on_finish(data) {
-    //   console.log("ON FINISH")
-    //   let x = _.last(data.events)
-    //   if (x.event == "response" && x.word == x.response) {
-    //     let rt = x.time - data.events[0].time
-    //     let prop_left = (PARAMS.recall_time - rt) / PARAMS.recall_time
-    //     prop_left = Math.max(0, prop_left)
-    //     test_time_bonus += prop_left * PARAMS.bonus_rate_speed
-    //   }
-    // },
+    on_finish(data) {
+      console.log("ON FINISH")
+      let x = _.last(data.events)
+      if (x.event == "response" && x.word == x.response) {
+        let rt = x.time - data.events[0].time
+        let prop_left = (PARAMS.recall_time - rt) / PARAMS.recall_time
+        prop_left = Math.max(0, prop_left)
+        critical_time_bonus += prop_left * PARAMS.bonus_rate_speed
+      }
+    },
   }
 
   let debrief = {
     type: 'survey-text',
     preamble: () => {
-      BONUS += Math.ceil(test_time_bonus)
+      BONUS += Math.ceil(critical_time_bonus)
       psiturk.recordUnstructuredData('bonus', BONUS / 100);
       return markdown(`
         # Study complete
@@ -387,10 +473,10 @@ async function initializeExperiment() {
   let timeline = [  // = timeline =
     // test_multi,
     welcome_block,
-    ...train_afc_blocks,
+    ...train_test_blocks,
     distractor,
-    test_instruct,
-    test_block,
+    critical_instruct,
+    critical_block,
     debrief,
   ];
 

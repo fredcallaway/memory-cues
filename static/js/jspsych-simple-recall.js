@@ -4,10 +4,9 @@
 
 jsPsych.plugins["simple-recall"] = (function() {
 
-    var SIZE = 300;
+  var SIZE = 300;
 
   var plugin = {};
-  var timer
   
   plugin.info = {
     name: "PLUGIN-NAME",
@@ -15,9 +14,9 @@ jsPsych.plugins["simple-recall"] = (function() {
   };
 
   plugin.trial = async function(display_element, trial) {
-    // console.log('begin simple-recall trial', trial)
+    console.log('begin simple-recall trial', trial.word)
     let display = $(display_element);
-    let {word, image, practice=false, time_bonus=0, bonus, recall_time} = trial;
+    let {word, image, practice=false, feedback=true, bonus, recall_time} = trial;
 
     let header = practice ?
     `
@@ -26,13 +25,7 @@ jsPsych.plugins["simple-recall"] = (function() {
       - Hit space. An image, text box, and timer will appear.
       - Type the word that was paired with the image into the text box.
       - Hit enter to submit your response.
-      - You will earn 2¢ for a correct response but lose 2¢ for an incorrect
-        response. If you leave the box blank, you don't lose anything.
-      - You will earn 0.1¢ for every second left on the timer
-        when you respond. You still get the time bonus if you give a blank
-        response, but not if you give an incorrect response.
-      - If the timer runs out before you respond, you get nothing.
-      - This practice round does not count towards your bonus.
+      - Make sure to respond before the timer hits zero!
     ` : ` `
       // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
@@ -43,18 +36,13 @@ jsPsych.plugins["simple-recall"] = (function() {
 
     let data = {
       trial,
+      correct: false,
       events: []
     };
     let start_time = performance.now();
 
-    function add_bonus(bonus) {
-      if (!practice) {
-        BONUS += bonus
-      }
-    }
-
     function log(event, info) {
-      console.log(event, info)
+      // console.log(event, info)
       data.events.push({
         time: performance.now() - start_time,
         event,
@@ -68,7 +56,7 @@ jsPsych.plugins["simple-recall"] = (function() {
     .css('margin-top', 40)
     .appendTo(display)
 
-    function showFeedback() {
+    function showFeedback(time=1500) {
       stage.empty()
       let fb = $('<div>')
       .css('font-size', '32pt')
@@ -76,7 +64,7 @@ jsPsych.plugins["simple-recall"] = (function() {
       .css('margin-top', 120)
       .appendTo(stage)
 
-      sleep(1500)
+      sleep(time)
       .then(()=> {
         display.empty()
         jsPsych.finishTrial(data)
@@ -122,66 +110,40 @@ jsPsych.plugins["simple-recall"] = (function() {
       }
     })
     .keypress(function(event) {
-      console.log(event.key)
       log('type', {key: event.key, input: input.val()});
       if (event.keyCode == 13 || event.which == 13) {  // press enter
         responded = true  // disable timeout
         let response = input.val().trim().toLowerCase();
         log('response', {response});
 
-        let feedback = $('<div>')
-        let error = false
-
-        if (response == word) {
-          add_bonus(bonus)
-          $('<p>')
-          .text(`Correct! +${bonus}¢`)
-          .css('color', '#080')
-          .appendTo(feedback)
-        } else if (response == '') {
-          $('<p>')
-          .text(`No response. +0¢`)
-          .css('color', '#888')
-          .appendTo(feedback)
-        } else {
-          add_bonus(-bonus)
-          error = true
-          $('<p>')
-          .text(`Incorrect! -${bonus}¢`)
-          .css('color', '#b00')
-          .appendTo(feedback)
+        data.correct = response == word
+        data.rt = performance.now() - start_time
+        if (data.correct || practice) {
+          BONUS += bonus
         }
-        // if (response != word && practice) {
-        //   BONUS += bonus
-        // }
 
-        if (!error && time_bonus > 0) {
-          let tb = Math.round(10 * time_bonus * timer.seconds_left) / 10
-          add_bonus(tb)
-          if (tb > 0) {
-            $('<p>')
-            .text(`Time bonus: +${tb}¢`)
-            .css('color', '#080')
-            .appendTo(feedback)
+        if (feedback) {
+          if (response == word) {
+            showFeedback().text(`Correct! +${bonus}¢`).css('color', '#080')
+          } else {
+            showFeedback().text('Incorrect').css('color', '#b00')
           }
-        }
-
-        if (response == word) {
-          showFeedback().append(feedback)
         } else {
-          showFeedback().append(feedback)
+          showFeedback(500)
         }
       }
     });
 
     // TIMER
-    timer = makeTimer(recall_time / 1000, stage)
+    let timer = makeTimer(recall_time / 1000, stage)
     timer.promise.then(() => {
       if (!responded) {
         log('timeout')
-        showFeedback().text('Timeout').css('color', '#888')
+        showFeedback().text('Timeout').css('color', '#b00')
       }
     })
+
+    
   } // plugin.trial
 
   return plugin;
