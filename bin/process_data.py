@@ -46,7 +46,13 @@ for w in ALL_WORDS:
 def parse_simple(row):
     ev = literal_eval(row.events)
     t = literal_eval(row.trial)
-    x = {'wid': row.wid, 'word': t['word'], 'image': t['image'], 'practice': t.get('practice', False)}
+    x = {
+        'wid': row.wid,
+        'word': t['word'],
+        'image': t['image'],
+        'practice': t.get('practice', False),
+        'block': int(getattr(row, 'block', 0))
+    }
     x['word_type'] = classify_word(x['word'])
 
     for e in ev:
