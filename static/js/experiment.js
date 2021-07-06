@@ -10,7 +10,7 @@ const PARAMS = { // = PARAMS =
   afc_time: null,
   afc_bonus_time: 5000,
   
-  n_pair: 10,
+  n_pair: 20,
   n_repeat: 2,
   n_practice_critical: 3,
   n_distractor: 10,
@@ -211,7 +211,7 @@ async function initializeExperiment() {
     return {timeline: [intro, block, feedback]}
   }
 
-  function make_simple_block(block_i) {
+  function make_simple_block(block_i, double=false) {
     let intro = button_trial(`
       # Test (${block_i+1} / ${PARAMS.n_repeat})
 
@@ -225,7 +225,7 @@ async function initializeExperiment() {
       quickly (and correctly), so try to respond as fast as you can
       (while staying accurate)!
 
-      Note: if you don't remember the word for the image, you can just leave
+      If you don't remember the word for the image, you can just leave
       the text box blank and hit enter. There's no penalty for guessing though!
     ` + ((block_i == 0) ? "We'll start with a practice round." : ""))
     
@@ -233,14 +233,17 @@ async function initializeExperiment() {
       // ones were correct! 😉
 
     let timeline = _.shuffle(pairs.low.concat(pairs.high))
-    timeline = JSON.parse(JSON.stringify(timeline))  // deep clone
+    timeline = JSON.parse(JSON.stringify(timeline))  // deep clone b/c mutation below
     
-    // Specialize by number
+    if (double) {
+      timeline = timeline.concat(_.shuffle(timeline))
+    }
     if (block_i == 0) {
       timeline[0].practice = true
-    } else if (block_i == PARAMS.n_repeat - 1) {
-      timeline = timeline.concat(_.shuffle(pairs.low.concat(pairs.high)))
-    }
+    } 
+    // else if (block_i == PARAMS.n_repeat - 1) {
+      // timeline = timeline.concat(_.shuffle(pairs.low.concat(pairs.high)))
+    // }
     var n_correct = 0
     var time_bonus = 0
     let block = {
@@ -288,12 +291,6 @@ async function initializeExperiment() {
     'afc': make_afc_block,
     'simple-recall': make_simple_block
   }[PARAMS.pretest_type]
-
-  let train_test_blocks = []
-  _.range(PARAMS.n_repeat).forEach(i => {
-    train_test_blocks.push(make_train_block(i))
-    train_test_blocks.push(make_test_block(i))
-  })
 
   let distractor_intro = button_trial(`
     # Math challenge
@@ -426,7 +423,7 @@ async function initializeExperiment() {
   let critical_block = {
     type: `${PARAMS.critical_type}`,
     bonus: PARAMS.bonus_rate_critical,
-    time_bonus: PARAMS.bonus_rate_critical_speed,
+    // time_bonus: PARAMS.bonus_rate_critical_speed,
     recall_time: PARAMS.recall_time,
     timeline: critical_timeline(),
     on_finish(data) {
@@ -469,12 +466,15 @@ async function initializeExperiment() {
     recall_time: PARAMS.recall_time,
     options: [{"word":"rouge","image":"../static/stimuli/images/pool/sun_antxeexzhaspkvlj.jpg"},{"word":"antelope","image":"../static/stimuli/images/river/sun_aiazxjumlgdcrfpn.jpg"}]
   }
-  
+
   let timeline = [  // = timeline =
     // test_multi,
     welcome_block,
-    ...train_test_blocks,
+    make_train_block(0),
+    make_test_block(0),
+    make_train_block(1),
     distractor,
+    make_test_block(1),
     critical_instruct,
     critical_block,
     debrief,
