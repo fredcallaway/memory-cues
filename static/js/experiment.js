@@ -256,7 +256,7 @@ async function initializeExperiment() {
       on_finish: data => {
         let {correct, rt} = data
         PRETEST_LOG.push({word: data.trial.word, correct, rt})
-        console.log("PRETEST_LOG", PRETEST_LOG)
+        // console.log("PRETEST_LOG", PRETEST_LOG)
         n_correct += data.correct
         if (data.correct) {
           let prop_left = (PARAMS.recall_time - data.rt) / PARAMS.recall_time
@@ -266,7 +266,7 @@ async function initializeExperiment() {
           }
           time_bonus += prop_left * PARAMS.bonus_rate_speed
         }
-        console.log('time_bonus = ', time_bonus)
+        // console.log('time_bonus = ', time_bonus)
         data.block = block_i + 1
       }
     }
@@ -474,7 +474,7 @@ async function initializeExperiment() {
     make_test_block(0),
     make_train_block(1),
     distractor,
-    make_test_block(1),
+    make_test_block(1, true),
     critical_instruct,
     critical_block,
     debrief,
