@@ -11,7 +11,7 @@ const PARAMS = { // = PARAMS =
   afc_bonus_time: 5000,
   
   n_pair: 20,
-  n_repeat: 2,
+  n_repeat: 3,
   n_practice_critical: 3,
   n_distractor: 10,
 
@@ -211,7 +211,9 @@ async function initializeExperiment() {
     return {timeline: [intro, block, feedback]}
   }
 
-  function make_simple_block(block_i, double=false) {
+  function make_simple_block(block_i, args) {
+    let {double, feedback} = _.defaults(args, {double: false, feedback:'accuracy'})
+
     let intro = button_trial(`
       # Test (${block_i+1} / ${PARAMS.n_repeat})
 
@@ -248,11 +250,11 @@ async function initializeExperiment() {
     var time_bonus = 0
     let block = {
       type: 'simple-recall',
-      feedback: false,
       max_time: PARAMS.afc_time,
       bonus: PARAMS.bonus_rate_pretest,
       recall_time: PARAMS.recall_time,
       timeline,
+      feedback,
       on_finish: data => {
         let {correct, rt} = data
         PRETEST_LOG.push({word: data.trial.word, correct, rt})
@@ -271,7 +273,7 @@ async function initializeExperiment() {
       }
     }
     
-    let feedback = button_trial(() => {
+    let summary = button_trial(() => {
       // saveData()
       time_bonus = Math.ceil(time_bonus)
       BONUS += time_bonus
@@ -284,7 +286,7 @@ async function initializeExperiment() {
         - Your current bonus is ${fmt_bonus()}.
       `
     })
-    return {timeline: [intro, block, feedback]}
+    return {timeline: [intro, block, summary]}
   }
 
   let make_test_block = {
@@ -471,10 +473,12 @@ async function initializeExperiment() {
     // test_multi,
     welcome_block,
     make_train_block(0),
-    make_test_block(0),
+    make_test_block(0, {feedback: "accuracy"}),
     make_train_block(1),
+    make_test_block(1, {feedback: "accuracy"}),
+    make_train_block(2),
     distractor,
-    make_test_block(1, true),
+    make_test_block(2, {double: true, feedback: "none"}),
     critical_instruct,
     critical_block,
     debrief,

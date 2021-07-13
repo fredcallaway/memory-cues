@@ -14,9 +14,9 @@ jsPsych.plugins["simple-recall"] = (function() {
   };
 
   plugin.trial = async function(display_element, trial) {
-    console.log('begin simple-recall trial', trial.word)
+    // console.log('begin simple-recall trial', trial)
     let display = $(display_element);
-    let {word, image, practice=false, feedback=true, bonus, recall_time} = trial;
+    let {word, image, practice=false, feedback='none', bonus, recall_time} = trial;
 
     let header = practice ?
     `
@@ -49,7 +49,6 @@ jsPsych.plugins["simple-recall"] = (function() {
         ...info
       });
     }
-
 
     let stage = $('<div>')
     .css('text-align', 'center')
@@ -122,7 +121,7 @@ jsPsych.plugins["simple-recall"] = (function() {
           BONUS += bonus
         }
 
-        if (feedback) {
+        if (feedback != 'none') {
           if (response == word) {
             showFeedback().text(`Correct! +${bonus}¢`).css('color', '#080')
           } else {

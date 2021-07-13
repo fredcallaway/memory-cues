@@ -25,7 +25,7 @@ jsPsych.plugins["multi-recall"] = (function() {
     }
     let {options, recall_time, bonus, practice=false} = trial;
 
-    console.log('multi-recall', options)
+    // console.log('multi-recall', options)
 
     if (trial.practice) {
       $('<div>')
