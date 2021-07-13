@@ -10,7 +10,7 @@ const PARAMS = { // = PARAMS =
   afc_time: null,
   afc_bonus_time: 5000,
   
-  n_pair: 20,
+  n_pair: 40,
   n_repeat: 3,
   n_practice_critical: 3,
   n_distractor: 10,
@@ -60,30 +60,25 @@ async function initializeExperiment() {
   LOG_DEBUG('initializeExperiment');
 
   const stimuli = await $.getJSON('static/stimuli/stimuli.json')
-  
-  let images = Object.values(stimuli.images).map(_.sample)
+  let images = _.sample(Object.values(stimuli.images).map(_.sample), PARAMS.n_pair)
+  let words = _.sample(stimuli.words, PARAMS.n_pair)
+  let pairs = _.zip(words, images).map(([word, image]) => ({word, image}))
+  console.log(pairs)
+
   jsPsych.pluginAPI.preloadImages(images);
   // psiturk.preloadImages(images);
-  let pairs = mapObject(stimuli.words, words => {
-    return _.sample(words, PARAMS.n_pair).map(word => {
-      let image = images.pop()
-      return {word, image}
-    })
-  })
-  PAIRS = pairs
-  let all_pairs = pairs.low.concat(pairs.high)
 
   if (searchParams.get('debug_multi', false)) {
     AFC_LOG = [{"word":"pig","correct":false,"rt":6006},{"word":"goddess","correct":false,"rt":458},{"word":"parrot","correct":true,"rt":214},{"word":"suburb","correct":true,"rt":4199},{"word":"donor","correct":true,"rt":695},{"word":"penguin","correct":true,"rt":518},{"word":"suburb","correct":false,"rt":6440},{"word":"goddess","correct":false,"rt":560},{"word":"penguin","correct":false,"rt":1024},{"word":"pig","correct":true,"rt":520},{"word":"parrot","correct":true,"rt":328},{"word":"donor","correct":true,"rt":564},{"word":"goddess","correct":false,"rt":535},{"word":"suburb","correct":false,"rt":6611},{"word":"parrot","correct":true,"rt":663},{"word":"donor","correct":true,"rt":645},{"word":"pig","correct":false,"rt":721},{"word":"penguin","correct":true,"rt":488}]
-    all_pairs = [{"word":"donor","image":"../static/stimuli/images/subway/sun_apsbdxitmzdgpeyn.jpg"},{"word":"goddess","image":"../static/stimuli/images/laundryroom/sun_amdxqjichaqshdel.jpg"},{"word":"suburb","image":"../static/stimuli/images/auditorium/sun_ahcmaddzrcfxzuuz.jpg"},{"word":"penguin","image":"../static/stimuli/images/volcano/sun_aacjsxcwmkbgvpmb.jpg"},{"word":"pig","image":"../static/stimuli/images/pool/sun_alkvkavnnunmdavq.jpg"},{"word":"parrot","image":"../static/stimuli/images/temple/sun_ahuwbjbhgegvnlsq.jpg"}]
+    pairs = [{"word":"donor","image":"../static/stimuli/images/subway/sun_apsbdxitmzdgpeyn.jpg"},{"word":"goddess","image":"../static/stimuli/images/laundryroom/sun_amdxqjichaqshdel.jpg"},{"word":"suburb","image":"../static/stimuli/images/auditorium/sun_ahcmaddzrcfxzuuz.jpg"},{"word":"penguin","image":"../static/stimuli/images/volcano/sun_aacjsxcwmkbgvpmb.jpg"},{"word":"pig","image":"../static/stimuli/images/pool/sun_alkvkavnnunmdavq.jpg"},{"word":"parrot","image":"../static/stimuli/images/temple/sun_ahuwbjbhgegvnlsq.jpg"}]
     PARAMS.n_pair = 3
     searchParams.set('skip', 6)
   }
 
   // let afc_bonus = (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat
-  let pretest_bonus = (PARAMS.bonus_rate_pretest + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * (1+PARAMS.n_repeat)
+  let pretest_bonus = (PARAMS.bonus_rate_pretest + PARAMS.bonus_rate_speed) * PARAMS.n_pair * (1+PARAMS.n_repeat)
   let distractor_bonus = PARAMS.bonus_rate_distractor * PARAMS.n_distractor
-  let n_critical = (PARAMS.critical_type == 'simple-recall' ? PARAMS.n_pair * 2 : PARAMS.n_pair) - PARAMS.n_practice_critical
+  let n_critical = (PARAMS.critical_type == 'simple-recall' ? PARAMS.n_pair : PARAMS.n_pair/2) - PARAMS.n_practice_critical
   let critical_bonus = (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_speed) * n_critical
   let max_bonus = pretest_bonus + distractor_bonus + critical_bonus
   
@@ -99,7 +94,7 @@ async function initializeExperiment() {
     on_finish: psiturk.finishInstructions
   })
 
-  let train_trials = all_pairs.map(({image, word}) => {
+  let train_trials = pairs.map(({image, word}) => {
     let stimulus = PARAMS.overlay ? `
       <div class="image-container">
         <img src="${image}"">
@@ -135,7 +130,7 @@ async function initializeExperiment() {
   }
 
   function make_afc_pairs() {
-    return _.chain(all_pairs)
+    return _.chain(pairs)
       .shuffle()
       .map(({image, word}, i, arr) => ({
         word: word,
@@ -234,7 +229,7 @@ async function initializeExperiment() {
       // However, to make things harder, we won't tell you which
       // ones were correct! 😉
 
-    let timeline = _.shuffle(pairs.low.concat(pairs.high))
+    let timeline = _.shuffle(pairs)
     timeline = JSON.parse(JSON.stringify(timeline))  // deep clone b/c mutation below
     
     if (double) {
@@ -370,7 +365,7 @@ async function initializeExperiment() {
       if (PARAMS.critical_type == 'multi-recall') {
         console.log('building critical trials')
         // console.log(JSON.stringify(AFC_LOG))
-        // console.log(JSON.stringify(all_pairs))
+        // console.log(JSON.stringify(pairs))
         // build the critical trials
         let scores = _.chain(PRETEST_LOG)
         .groupBy("word")
@@ -384,12 +379,12 @@ async function initializeExperiment() {
         psiturk.recordUnstructuredData('afc_scores', scores)
         // console.log('scores', scores)
 
-        let sorted_pairs = _.sortBy(all_pairs, ({word}) => scores[word])
+        let sorted_pairs = _.sortBy(pairs, ({word}) => scores[word])
         // console.log(sorted_pairs)
 
         CRITICAL_PAIRS = _.zip(
-          sorted_pairs.slice(0, PARAMS.n_pair),
-          sorted_pairs.slice(PARAMS.n_pair).reverse()
+          sorted_pairs.slice(0, PARAMS.n_pair/2),
+          sorted_pairs.slice(PARAMS.n_pair/2).reverse()
         )
         psiturk.recordUnstructuredData('critical_pairs', CRITICAL_PAIRS)
         // console.log('CRITICAL_PAIRS', CRITICAL_PAIRS)
@@ -399,13 +394,13 @@ async function initializeExperiment() {
 
   function critical_timeline() {
     if (PARAMS.critical_type == 'simple-recall') {
-      let timeline = _.shuffle(pairs.low.concat(pairs.high))
+      let timeline = _.shuffle(pairs)
       for (let i of _.range(PARAMS.n_practice_critical)) {
         timeline[i].practice = true
       }
       return timeline
     } else {
-      let timeline = _.chain(PARAMS.n_pair)
+      let timeline = _.chain(PARAMS.n_pair/2)
       .range()
       .map(idx => {
         return {

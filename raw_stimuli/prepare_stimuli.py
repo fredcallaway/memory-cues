@@ -112,25 +112,20 @@ def write_images():
 
 def get_words():
     df = pd.read_csv('Madan_pRecall_database.csv')
+    return list(df.word.str.lower())
 
-    thresh = df.pRecall.median()
-    low = df.query('pRecall < @thresh').sort_values('Concreteness').iloc[:50]
-    high = df.query('Concreteness == 5').sort_values('pRecall').iloc[-50:]
-
-    return list(low.word.str.lower()), list(high.word.str.lower())
+    # thresh = df.pRecall.median()
+    # low = df.query('pRecall < @thresh').sort_values('Concreteness').iloc[:50]
+    # high = df.query('Concreteness == 5').sort_values('pRecall').iloc[-50:]
+    # return list(low.word.str.lower()), list(high.word.str.lower())
 
 # %% ====================  ====================
 
 def main():
-    image_paths = write_images()
-    low, high = get_words()
     with open('../static/stimuli/stimuli.json', 'w+') as f:
         json.dump({
-            'words': {
-                'low': low,
-                'high': high,
-            },
-            'images': image_paths,
+            'words': get_words(),
+            'images': write_images(),
         }, f)
 
 if __name__ == '__main__':
