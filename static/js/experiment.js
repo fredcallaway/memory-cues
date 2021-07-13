@@ -64,6 +64,7 @@ async function initializeExperiment() {
   let words = _.sample(stimuli.words, PARAMS.n_pair)
   let pairs = _.zip(words, images).map(([word, image]) => ({word, image}))
   console.log(pairs)
+  psiturk.recordUnstructuredData('pairs', pairs)
 
   jsPsych.pluginAPI.preloadImages(images);
   // psiturk.preloadImages(images);
