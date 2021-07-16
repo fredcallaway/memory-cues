@@ -192,7 +192,7 @@ async function initializeExperiment() {
     }
     
     let feedback = button_trial(() => {
-      // saveData()
+      saveData()
       time_bonus = Math.ceil(time_bonus)
       BONUS += time_bonus
       return `
@@ -270,7 +270,7 @@ async function initializeExperiment() {
     }
     
     let summary = button_trial(() => {
-      // saveData()
+      saveData()
       time_bonus = Math.ceil(time_bonus)
       BONUS += time_bonus
       return `
@@ -363,6 +363,7 @@ async function initializeExperiment() {
     // Like before, you will earn a little extra money for responding quickly,
     // so try to be as fast as you can while maintaining accuracy!
     on_finish() {
+      saveData()
       if (PARAMS.critical_type == 'multi-recall') {
         console.log('building critical trials')
         // console.log(JSON.stringify(AFC_LOG))
