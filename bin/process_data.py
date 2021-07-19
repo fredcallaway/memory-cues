@@ -4,44 +4,49 @@ import os
 from ast import literal_eval
 from fire import Fire
 import json
-# import nltk
-# nltk.download('wordnet')
-from nltk.stem.wordnet import WordNetLemmatizer
-lemmatize = WordNetLemmatizer().lemmatize
+from spellchecker import SpellChecker
+
+# from nltk.stem.wordnet import WordNetLemmatizer
+# lemmatize = WordNetLemmatizer().lemmatize
+def normalize(word):
+    return word.strip().lower()
+
 
 import bonus
 
-def load_words():
-    stimuli = json.load(open('static/stimuli/stimuli.json'))
-    return {kind: set(map(lemmatize, words)) 
-            for kind, words in stimuli['words'].items()}
+# def load_words():
+#     stimuli = json.load(open('static/stimuli/stimuli.json'))
+#     return {kind: set(map(lemmatize, words)) 
+#             for kind, words in stimuli['words'].items()}
+# this gets called in main
 
-WORDS = load_words()
-ALL_WORDS = set.union(*WORDS.values())
+CLASSIFIERS = None
+def build_classifiers(pdf):
+    
+    def build(pairs):
+        words = [x['word'] for x in literal_eval(pairs)]
+        spell = spell = SpellChecker(None)
+        spell.word_frequency.load_words(words)
 
-def classify_word(word):
-    for k in 'low', 'high':
-        if lemmatize(word) in WORDS[k]:
-            return k
-    raise ValueError('Bad word: ' + word)
+        # that's right, three layers of nested functions
+        def classify(word, response):
+            response = normalize(response)
+            if len(response) <= 2:
+                return 'empty'
+            possible_intents = set(map(normalize, spell.candidates(response)))
+            if normalize(word) in possible_intents:
+                return 'correct'
+            elif any(w in possible_intents for w in words):
+                return 'intrusion'
+            else:
+                return 'other'
+        return classify
+    
+    global CLASSIFIERS
+    CLASSIFIERS = pdf.pairs.apply(build)
 
-def classify_response(word, response):
-    if response == '':
-        return 'empty'
-    possible_intents = set(map(lemmatize, spell.candidates(response)))
-    if lemmatize(word) in possible_intents:
-        return 'correct'
-    elif any(w in possible_intents for w in ALL_WORDS):
-        return 'intrusion'
-    else:
-        return 'other'
-
-from spellchecker import SpellChecker
-spell = SpellChecker()
-spell.word_frequency.load_words(['bluejay'])  # add any unknown words
-for w in ALL_WORDS:
-    assert spell.candidates(w) == {w}, w
-    assert classify_response(w, w), w
+def classify_response(word, response, wid):
+    return CLASSIFIERS[wid](word, response)
 
 def parse_simple(row):
     ev = literal_eval(row.events)
@@ -53,7 +58,7 @@ def parse_simple(row):
         'practice': t.get('practice', False),
         'block': int(getattr(row, 'block', 0))
     }
-    x['word_type'] = classify_word(x['word'])
+    # x['word_type'] = classify_word(x['word'])
 
     for e in ev:
         # if e['event'] == 'start trial':
@@ -72,7 +77,7 @@ def parse_simple(row):
         elif e['event'] == 'response':
             x['response'] = e['response']
             x['type_time'] = e['time'] - begin_response
-            x['response_type'] = classify_response(x['word'], e['response'])
+            x['response_type'] = classify_response(x['word'], e['response'], row.wid)
             return x
         
         elif e['event'] == 'timeout':
@@ -111,7 +116,7 @@ def parse_multi_flip(row):
             x['word'] = e['word']
             x['response'] = e['response']
             x['response_rt'] = e['time'] - start
-            x['response_type'] = classify_response(x['word'], e['response'])
+            x['response_type'] = classify_response(x['word'], e['response'], row.wid)
             return x
 
         elif e['event'] == 'timeout':
@@ -166,7 +171,7 @@ def parse_multi(row):
             x['word'] = e['word']
             x['response'] = e['response']
             x['response_rt'] = e['time'] - start
-            x['response_type'] = classify_response(x['word'], e['response'])
+            x['response_type'] = classify_response(x['word'], e['response'], row.wid)
 
             return x
 
@@ -205,9 +210,12 @@ def main(codeversion):
     def load_raw(kind):
         return  pd.read_csv(f'data/human/{codeversion}/{kind}.csv')#.dropna(axis=1)
 
-    def process(kind):
-        try:
+    pdf = load_raw('participants').set_index('wid')
+    pdf['math_correct'] = load_raw('math').set_index('wid').num_correct
+    build_classifiers(pdf)
 
+    for kind in ['simple-recall', 'multi-recall', 'afc']:
+        try:
             parser = {'simple-recall': parse_simple, 'multi-recall': parse_multi, 'afc': parse_afc}[kind]
             data = load_raw(kind).apply(parser, axis=1, result_type='expand')
             if kind == 'afc' and codeversion == 'v3.4':
@@ -219,11 +227,6 @@ def main(codeversion):
             data.set_index('wid').to_csv(fn)
             print('wrote', fn)
 
-    for kind in ['simple-recall', 'multi-recall', 'afc']:
-        process(kind)
-
-    pdf = load_raw('participants').set_index('wid')
-    pdf['math_correct'] = load_raw('math').set_index('wid').num_correct
 
     n_incomplete = (pdf.completed != True).sum()
     print(f'{n_incomplete} participants did not complete the experiment')
