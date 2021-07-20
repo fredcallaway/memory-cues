@@ -64,19 +64,17 @@ def parse_simple(row):
         # if e['event'] == 'start trial':
         if e['event'] == 'show image':
             start = e['time']
-        
-        elif e['event'] == 'begin response':
-            begin_response = e['time']
-            x['rt'] = round(begin_response - start)
-        
-        elif e['event'] == 'type' and 'typing_rt':
+                
+        elif e['event'] == 'type' and 'typing_rt' not in x:
             if round(e['time'] - start) < 30:
                 continue  # this is probably a mispress
-            x['typing_rt'] = round(e['time'] - start)
+            begin_type = e['time']
+            x['typing_rt'] = round(begin_type - start)
         
         elif e['event'] == 'response':
             x['response'] = e['response']
-            x['type_time'] = e['time'] - begin_response
+            x['type_time'] = round(e['time'] - begin_type)
+            x['rt'] = round(e['time'] - start)
             x['response_type'] = classify_response(x['word'], e['response'], row.wid)
             return x
         
@@ -93,9 +91,8 @@ def parse_multi_flip(row):
         'practice': t.get('practice', False),
         'first_word': t['options'][0]['word'],
         'second_word': t['options'][1]['word']
+        'presentation_times': []
     }
-
-    x['presentation_times'] = []
 
     for e in ev:
         if e['event'] == 'show':
