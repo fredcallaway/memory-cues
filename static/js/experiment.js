@@ -11,7 +11,7 @@ const PARAMS = { // = PARAMS =
   afc_bonus_time: 5000,
   
   n_pair: 40,
-  n_repeat: 3,
+  n_repeat: 2,
   n_practice_critical: 3,
   n_distractor: 10,
 
@@ -208,7 +208,7 @@ async function initializeExperiment() {
   }
 
   function make_simple_block(block_i, args) {
-    let {double, feedback} = _.defaults(args, {double: false, feedback:'accuracy'})
+    let {double, feedback} = _.defaults(args, {double: false, feedback:'none'})
 
     let intro = button_trial(`
       # Test (${block_i+1} / ${PARAMS.n_repeat})
@@ -470,10 +470,10 @@ async function initializeExperiment() {
     // test_multi,
     welcome_block,
     make_train_block(0),
-    make_test_block(0, {feedback: "accuracy"}),
+    make_test_block(0),
     make_train_block(1),
-    make_test_block(1, {feedback: "accuracy"}),
-    make_train_block(2),
+    // make_test_block(1),
+    // make_train_block(2),
     distractor,
     make_test_block(2, {double: true, feedback: "none"}),
     critical_instruct,
