@@ -11,6 +11,7 @@ import re
 import json
 from collections import defaultdict
 import configparser
+import sys
 
 logging.basicConfig(level="INFO")
 
@@ -92,7 +93,14 @@ def reformat_data(version):
     def parse_questiondata():
         qdf = pd.read_csv(data_path + 'questiondata.csv', header=None)
         for uid, df in qdf.groupby(0):
-            worker_id, assignment_id = uid.split(':')
+
+            weird = 'Note: your Prolific ID is being'  # no idea what's going on here
+            if uid.endswith(weird):
+                uid = uid[:-len(weird)]
+            try:
+                worker_id, assignment_id = uid.split(':')
+            except:
+                import IPython, time; IPython.embed(); time.sleep(0.5)
             identifiers['worker_id'].append(worker_id)
             identifiers['assignment_id'].append(assignment_id)
             row = {'wid': hash_id(worker_id)}
@@ -150,8 +158,8 @@ def reformat_data(version):
 
 def main(version, address, username, password):
     files = ["trialdata", "eventdata", "questiondata"]
-    for filename in files:
-        fetch(address, filename, version, HTTPBasicAuth(username, password))
+    # for filename in files:
+    #     fetch(address, filename, version, HTTPBasicAuth(username, password))
     reformat_data(version)
 
 
@@ -160,6 +168,7 @@ if __name__ == "__main__":
         formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "version",
+        nargs="?",
         help=("Experiment version. This corresponds to the experiment_code_version "
               "parameter in the psiTurk config.txt file that was used when the "
               "data was collected."))
@@ -170,5 +179,13 @@ if __name__ == "__main__":
 
     url = 'https://' + sp['adserver_revproxy_host'] + '/data'
 
-    args = parser.parse_args()
-    main(args.version, url, sp['login_username'], sp['login_pw'])
+    version = parser.parse_args().version
+    if version == None:
+        version = c["Task Parameters"]["experiment_code_version"]
+        print("Fetching data for current version: ", version)
+    main(version, url, sp['login_username'], sp['login_pw'])
+    
+    sys.path.append('bin')
+    import process_data
+    process_data.main(version)
+
