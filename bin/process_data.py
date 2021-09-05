@@ -24,6 +24,8 @@ CLASSIFIERS = None
 def build_classifiers(pdf):
     
     def build(pairs):
+        if pd.isna(pairs):
+            return None
         words = [x['word'] for x in literal_eval(pairs)]
         spell = spell = SpellChecker(None)
         spell.word_frequency.load_words(words)
@@ -58,6 +60,7 @@ def parse_simple(row):
         'practice': t.get('practice', False),
         'block': int(getattr(row, 'block', 0))
     }
+    begin_type = float('nan')
     # x['word_type'] = classify_word(x['word'])
 
     for e in ev:
@@ -66,15 +69,15 @@ def parse_simple(row):
             start = e['time']
                 
         elif e['event'] == 'type' and 'typing_rt' not in x:
-            if round(e['time'] - start) < 30:
+            if (e['time'] - start) < 30:
                 continue  # this is probably a mispress
             begin_type = e['time']
-            x['typing_rt'] = round(begin_type - start)
+            x['typing_rt'] = begin_type - start
         
         elif e['event'] == 'response':
             x['response'] = e['response']
-            x['type_time'] = round(e['time'] - begin_type)
-            x['rt'] = round(e['time'] - start)
+            x['type_time'] = e['time'] - begin_type
+            x['rt'] = e['time'] - start
             x['response_type'] = classify_response(x['word'], e['response'], row.wid)
             return x
         
@@ -90,7 +93,7 @@ def parse_multi_flip(row):
         'wid': row.wid,
         'practice': t.get('practice', False),
         'first_word': t['options'][0]['word'],
-        'second_word': t['options'][1]['word']
+        'second_word': t['options'][1]['word'],
         'presentation_times': []
     }
 
