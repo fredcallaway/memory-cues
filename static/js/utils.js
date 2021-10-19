@@ -3,6 +3,15 @@ function updateExisting(target, src) {
         .forEach(k => target[k] = (src.hasOwnProperty(k) ? src[k] : target[k]));
 }
 
+
+function randString(n) {
+  s = ''
+  while (s.length < n) {
+    s += _.sample("abcdefghijklmnopqrstuvwxyz")
+  }
+  return s
+}
+
 function maybeJson(s) {
   try {
     return JSON.parse(s);

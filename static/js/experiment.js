@@ -21,6 +21,9 @@ const PARAMS = { // = PARAMS =
   bonus_rate_pretest: 1,
   bonus_rate_distractor: 1,
   bonus_rate_speed: 0.25,
+
+  prime: true,
+  prime_duration: 100,
 }
 
 searchParams = new URLSearchParams(location.search)
@@ -422,6 +425,7 @@ async function initializeExperiment() {
   let critical_block = {
     type: `${PARAMS.critical_type}`,
     bonus: PARAMS.bonus_rate_critical,
+    prime: PARAMS.prime,
     // time_bonus: PARAMS.bonus_rate_critical_speed,
     recall_time: PARAMS.recall_time,
     timeline: critical_timeline(),
@@ -461,6 +465,7 @@ async function initializeExperiment() {
   let test_multi = {
     type: `multi-recall`,
     practice: true,
+    prime: true,
     bonus: PARAMS.bonus_rate_critical,
     recall_time: PARAMS.recall_time,
     options: [{"word":"rouge","image":"../static/stimuli/images/pool/sun_antxeexzhaspkvlj.jpg"},{"word":"antelope","image":"../static/stimuli/images/river/sun_aiazxjumlgdcrfpn.jpg"}]

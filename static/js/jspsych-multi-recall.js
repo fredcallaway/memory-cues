@@ -23,13 +23,12 @@ jsPsych.plugins["multi-recall"] = (function() {
     if (typeof trial.options === 'function') {
       trial.options = trial.options.call();
     }
-    let {options, recall_time, bonus, practice=false} = trial;
+    let {options, recall_time, bonus, practice=false, prime=false} = trial;
 
-    // console.log('multi-recall', options)
+    console.log('multi-recall', options)
 
     if (trial.practice) {
-      $('<div>')
-      .html(markdown(`
+      let instruct = `
         # Practice trial
 
         - Press **${show_left}** to show the left image. Press **${show_right}** to show the right image.
@@ -42,7 +41,12 @@ jsPsych.plugins["multi-recall"] = (function() {
           **${choose_left}**. For the right image, press **${choose_right}**.
         - A text box will appear. Type in the word that was paired with the image you chose.
         - Hit enter/return to submit your response. Make sure to respond before the timer hits zero!
-      `))
+      `
+      // if (prime) {
+      //   instruct += "- You may see a word flash before the round. Don't worry about it."
+      // }
+      $('<div>')
+      .html(markdown(instruct))
       .appendTo(display);
       recall_time = 30000
     }
@@ -82,6 +86,26 @@ jsPsych.plugins["multi-recall"] = (function() {
       })
       return fb
     }
+
+    if (prime) {
+      let message = $('<div>')
+      .css('margin-top', 140)
+      .text('press space when ready')
+      .appendTo(stage)
+
+      await getKeyPress(['space'])
+      await sleep()  // this prevents the space from being logged as a key press
+      message.empty()
+
+      let prime_word = _.sample(options).word
+      log('show prime', {prime_word})
+      message.text(prime_word)
+      await sleep(PARAMS.prime_duration)
+      // message.text(randString(prime_word.length))
+      // await sleep(30)
+      stage.empty()
+    }
+
     let displays = options.map(({word, image}) => {
       let block = $('<div>')
       .css({
