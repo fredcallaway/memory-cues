@@ -28,23 +28,24 @@ jsPsych.plugins["multi-recall"] = (function() {
     console.log('multi-recall', options)
 
     if (trial.practice) {
+      let prime_instruct = `
+        - Press space. A word (not one you've seen before) will flash on the screen.
+        - The images will appear on the screen, but they will be covered by gray blocks.`
       let instruct = `
         # Practice trial
 
+        ${prime ? prime_instruct : ''}
         - Press **${show_left}** to show the left image. Press **${show_right}** to show the right image.
         - A timer will start as soon as you show one of the images. Normally
           you'll have ${recall_time/1000} seconds to respond. But for this
           practice round we'll give you 30 seconds.
         - You can flip back and forth as many times as you like. 
-        - **For this practice round, please show each image twice!**
         - If you remember the word for the left image, press
           **${choose_left}**. For the right image, press **${choose_right}**.
         - A text box will appear. Type in the word that was paired with the image you chose.
         - Hit enter/return to submit your response. Make sure to respond before the timer hits zero!
       `
-      // if (prime) {
-      //   instruct += "- You may see a word flash before the round. Don't worry about it."
-      // }
+        // - **For this practice round, please show each image twice!**
       $('<div>')
       .html(markdown(instruct))
       .appendTo(display);
@@ -88,22 +89,37 @@ jsPsych.plugins["multi-recall"] = (function() {
     }
 
     if (prime) {
+      let primed = _.sample(options).word
+      let prime_word = PRIMES.primes[primed]
+
       let message = $('<div>')
       .css('margin-top', 140)
       .text('press space when ready')
       .appendTo(stage)
-
       await getKeyPress(['space'])
-      await sleep()  // this prevents the space from being logged as a key press
-      message.empty()
 
-      let prime_word = _.sample(options).word
-      log('show prime', {prime_word})
+
+      message
+      .text('')
+      .css('font-size', 40)
+      await sleep(250)
+      
+      if (PARAMS.prime_mask_duration > 0) {
+        message.text(randString(prime_word.length))
+        await sleep(PARAMS.prime_mask_duration)
+      }
+
+      log('show prime', {primed, prime_word})
       message.text(prime_word)
       await sleep(PARAMS.prime_duration)
-      // message.text(randString(prime_word.length))
-      // await sleep(30)
+
+      if (PARAMS.prime_mask_duration > 0) {
+        message.text(randString(prime_word.length))
+        await sleep(PARAMS.prime_mask_duration)
+      }
+      
       stage.empty()
+      await sleep(250)
     }
 
     let displays = options.map(({word, image}) => {

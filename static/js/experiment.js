@@ -23,7 +23,8 @@ const PARAMS = { // = PARAMS =
   bonus_rate_speed: 0.25,
 
   prime: true,
-  prime_duration: 100,
+  prime_duration: 500,
+  prime_mask_duration: 0,
 }
 
 searchParams = new URLSearchParams(location.search)
@@ -42,6 +43,7 @@ XX = null
 
 var CRITICAL_PAIRS
 var PRETEST_LOG = []
+PRIMES = undefined
 
 function button_trial(html, opts={}) {
   return {
@@ -63,8 +65,12 @@ async function initializeExperiment() {
   LOG_DEBUG('initializeExperiment');
 
   const stimuli = await $.getJSON('static/stimuli/stimuli.json')
+  PRIMES = await $.getJSON('static/stimuli/primes.json')
   let images = _.sample(Object.values(stimuli.images).map(_.sample), PARAMS.n_pair)
-  let words = _.sample(stimuli.words, PARAMS.n_pair)
+  
+  // let words = _.sample(stimuli.words, PARAMS.n_pair)
+  let words = _.sample(Object.keys(PRIMES.primes), PARAMS.n_pair)
+
   let pairs = _.zip(words, images).map(([word, image]) => ({word, image}))
   console.log(pairs)
   psiturk.recordUnstructuredData('pairs', pairs)
@@ -452,9 +458,12 @@ async function initializeExperiment() {
         Thanks for participating! You earned a bonus of ${fmt_bonus()}.
         Please provide feedback on the study below.
         You can leave a box blank if you have no relevant comments.
+
+        <b>Please make sure to answer the first question!</b>
       `)
     },
     questions: [
+      'Did you notice anything about the words that flashed in the last test round?',
       'Were the instructions confusing, hard to understand, or too long?',
       'Was the interface at all difficult to use?',
       'Did you experience any technical problems (e.g., images not displaying)?',
@@ -468,19 +477,16 @@ async function initializeExperiment() {
     prime: true,
     bonus: PARAMS.bonus_rate_critical,
     recall_time: PARAMS.recall_time,
-    options: [{"word":"rouge","image":"../static/stimuli/images/pool/sun_antxeexzhaspkvlj.jpg"},{"word":"antelope","image":"../static/stimuli/images/river/sun_aiazxjumlgdcrfpn.jpg"}]
+    options: [{"word":"milk","image":"../static/stimuli/images/pool/sun_antxeexzhaspkvlj.jpg"},{"word":"egg","image":"../static/stimuli/images/river/sun_aiazxjumlgdcrfpn.jpg"}]
   }
 
   let timeline = [  // = timeline =
-    // test_multi,
     welcome_block,
     make_train_block(0),
     make_test_block(0),
     make_train_block(1),
-    // make_test_block(1),
-    // make_train_block(2),
     distractor,
-    make_test_block(2, {double: true, feedback: "none"}),
+    make_test_block(1, {double: true, feedback: "none"}),
     critical_instruct,
     critical_block,
     debrief,
