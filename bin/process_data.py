@@ -140,6 +140,8 @@ def parse_multi(row):
     shown = None
     begin_fix = None
     for e in ev:
+        if e['event'] == 'show prime':
+            x['primed_word'] = e['primed']
         if e['event'] == 'show':
             if e['option'] == shown:  # showing the already on screen option, ignore this
                 continue
