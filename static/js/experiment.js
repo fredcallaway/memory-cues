@@ -23,8 +23,9 @@ const PARAMS = { // = PARAMS =
   bonus_rate_speed: 0.25,
 
   prime: true,
-  prime_duration: 500,
-  prime_mask_duration: 0,
+  // prime_duration: 100,
+  prime_mask: true,
+  prime_mask_surround: true,
 }
 
 searchParams = new URLSearchParams(location.search)
@@ -463,7 +464,7 @@ async function initializeExperiment() {
       `)
     },
     questions: [
-      'Did you notice anything about the words that flashed in the last test round?',
+      'Did you notice anything about the letters that flashed in the last test round?',
       'Were the instructions confusing, hard to understand, or too long?',
       'Was the interface at all difficult to use?',
       'Did you experience any technical problems (e.g., images not displaying)?',
@@ -491,6 +492,8 @@ async function initializeExperiment() {
     critical_block,
     debrief,
   ];
+
+  if (searchParams.get('multi')) timeline[0] = test_multi
 
   let skip = searchParams.get('skip');
 

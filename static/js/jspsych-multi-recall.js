@@ -29,21 +29,20 @@ jsPsych.plugins["multi-recall"] = (function() {
 
     if (trial.practice) {
       let prime_instruct = `
-        - Press space. A word (not one you've seen before) will flash on the screen.
-        - The images will appear on the screen, but they will be covered by gray blocks.`
+        `
       let instruct = `
         # Practice trial
 
-        ${prime ? prime_instruct : ''}
+        - Press space. Some letters will flash on the screen. Then a timer will start.
+        - The images will appear on the screen, but they will be covered by gray blocks.
         - Press **${show_left}** to show the left image. Press **${show_right}** to show the right image.
-        - A timer will start as soon as you show one of the images. Normally
-          you'll have ${recall_time/1000} seconds to respond. But for this
-          practice round we'll give you 30 seconds.
         - You can flip back and forth as many times as you like. 
         - If you remember the word for the left image, press
           **${choose_left}**. For the right image, press **${choose_right}**.
         - A text box will appear. Type in the word that was paired with the image you chose.
         - Hit enter/return to submit your response. Make sure to respond before the timer hits zero!
+        - Normally you'll have ${recall_time/1000} seconds to respond. But for this
+          practice round we'll give you 30 seconds.
       `
         // - **For this practice round, please show each image twice!**
       $('<div>')
@@ -88,38 +87,61 @@ jsPsych.plugins["multi-recall"] = (function() {
       return fb
     }
 
+    let block_container = $('<div>').appendTo(stage)
+    let timer_container = $('<div>').css('margin-top', 20).appendTo(stage)
+    
+    let timer = null
+    function startTimer() {
+      timer = makeTimer(recall_time / 1000, timer_container)
+      timer.promise.then(() => {
+        if (!complete) {
+          complete = true
+          log('timeout')
+          showFeedback().text('Timeout').css('color', '#b00')
+        }
+      })
+    }
+
+
     if (prime) {
+      let prime_stage = $('<div>').appendTo(stage)
       let primed = _.sample(options).word
       let prime_word = PRIMES.primes[primed]
 
       let message = $('<div>')
       .css('margin-top', 140)
       .text('press space when ready')
-      .appendTo(stage)
+      .appendTo(prime_stage)
       await getKeyPress(['space'])
-
 
       message
       .text('')
       .css('font-size', 40)
       await sleep(250)
-      
-      if (PARAMS.prime_mask_duration > 0) {
-        message.text(randString(prime_word.length))
-        await sleep(PARAMS.prime_mask_duration)
+
+      let str_len = PARAMS.prime_mask_surround ? 13 : prime_word.length
+      if (PARAMS.prime_mask) {
+        message.text(randStringCons(str_len))
+        await sleep(300)
+        if (PARAMS.prime_mask_surround) {
+          let n_pad = (str_len - prime_word.length) / 2
+          prime_word = randStringCons(Math.ceil(n_pad)) + prime_word + randStringCons(Math.floor(n_pad))
+        }
       }
 
       log('show prime', {primed, prime_word})
+      prime_word
       message.text(prime_word)
-      await sleep(PARAMS.prime_duration)
+      await sleep(200)
 
-      if (PARAMS.prime_mask_duration > 0) {
-        message.text(randString(prime_word.length))
-        await sleep(PARAMS.prime_mask_duration)
+      if (PARAMS.prime_mask) {
+        message.text(randStringCons(str_len))
+        await sleep(30)
       }
       
-      stage.empty()
+      prime_stage.remove()
       await sleep(250)
+      startTimer()
     }
 
     let displays = options.map(({word, image}) => {
@@ -130,7 +152,7 @@ jsPsych.plugins["multi-recall"] = (function() {
           'margin-right': 63,
           'margin-bottom': 30,
       })
-      .appendTo(stage);
+      .appendTo(block_container);
       
       let mask = $('<div>')
       .css({
@@ -162,19 +184,7 @@ jsPsych.plugins["multi-recall"] = (function() {
     })
   
     var complete = false
-    let timer_container = $('<div>').css('margin-top', 20).appendTo(stage)
-    let timer = null
-    function startTimer() {
-      timer = makeTimer(recall_time / 1000, timer_container)
-      timer.promise.then(() => {
-        if (!complete) {
-          complete = true
-          log('timeout')
-          showFeedback().text('Timeout').css('color', '#b00')
-        }
-      })
-    }
-
+    
     // flip between images with key presses
     let choice = null
     while (choice == null) {

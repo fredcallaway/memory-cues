@@ -12,6 +12,14 @@ function randString(n) {
   return s
 }
 
+function randStringCons(n) {
+  s = ''
+  while (s.length < n) {
+    s += _.sample("bcdfghjklmnpqrstvwxz")
+  }
+  return s
+}
+
 function maybeJson(s) {
   try {
     return JSON.parse(s);
