@@ -23,9 +23,9 @@ const PARAMS = { // = PARAMS =
   bonus_rate_speed: 0.25,
 
   prime: true,
-  // prime_duration: 100,
-  prime_mask: true,
-  prime_mask_surround: true,
+  prime_duration: 100,
+  prime_mask: false,
+  prime_mask_surround: false,
 }
 
 searchParams = new URLSearchParams(location.search)

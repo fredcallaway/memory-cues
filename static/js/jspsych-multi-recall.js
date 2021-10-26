@@ -132,7 +132,7 @@ jsPsych.plugins["multi-recall"] = (function() {
       log('show prime', {primed, prime_word})
       prime_word
       message.text(prime_word)
-      await sleep(200)
+      await sleep(PARAMS.prime_duration)
 
       if (PARAMS.prime_mask) {
         message.text(randStringCons(str_len))
