@@ -242,7 +242,7 @@ def main(codeversion):
     pdf.to_csv(out + 'participants.csv')
 
     survey_raw = load_raw('survey-text').set_index('wid').responses
-    survey = pd.DataFrame(list(survey_raw.apply(literal_eval)))
+    survey = pd.DataFrame(list(survey_raw.apply(literal_eval)), index=survey_raw.index)
     survey.to_csv(out + 'survey.csv')
 
     if os.path.isdir('/Users/fred/Projects/memory/data/'):    
