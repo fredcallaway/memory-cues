@@ -372,60 +372,14 @@ async function initializeExperiment() {
   `, {
     // Like before, you will earn a little extra money for responding quickly,
     // so try to be as fast as you can while maintaining accuracy!
-    on_finish() {
-      saveData()
-      if (PARAMS.critical_type == 'multi-recall') {
-        console.log('building critical trials')
-        // console.log(JSON.stringify(AFC_LOG))
-        // console.log(JSON.stringify(pairs))
-        // build the critical trials
-        let scores = _.chain(PRETEST_LOG)
-        .groupBy("word")
-        .mapObject(record => 
-          mean(record.map(({correct, rt}) => {
-            PARAMS.fancy_critical ? Math.log(rt) : 0
-          }))
-        )
-        .value()
-        // console.log(scores)
-        psiturk.recordUnstructuredData('afc_scores', scores)
-        // console.log('scores', scores)
-
-        let sorted_pairs = _.sortBy(pairs, ({word}) => scores[word])
-        // console.log(sorted_pairs)
-
-        CRITICAL_PAIRS = _.zip(
-          sorted_pairs.slice(0, PARAMS.n_pair/2),
-          sorted_pairs.slice(PARAMS.n_pair/2).reverse()
-        )
-        psiturk.recordUnstructuredData('critical_pairs', CRITICAL_PAIRS)
-        // console.log('CRITICAL_PAIRS', CRITICAL_PAIRS)
-      }
-    }
   })
 
   function critical_timeline() {
-    if (PARAMS.critical_type == 'simple-recall') {
-      let timeline = _.shuffle(pairs)
-      for (let i of _.range(PARAMS.n_practice_critical)) {
-        timeline[i].practice = true
-      }
-      return timeline
-    } else {
-      let timeline = _.chain(PARAMS.n_pair/2)
-      .range()
-      .map(idx => {
-        return {
-          options() {
-            return _.shuffle(CRITICAL_PAIRS[idx])
-          }
-        }
-      })
-      .shuffle()
-      .value()
-      timeline[0].practice = true
-      return timeline
+    let timeline = _.shuffle(pairs)
+    for (let i of _.range(PARAMS.n_practice_critical)) {
+      timeline[i].practice = true
     }
+    return timeline
   }
 
   var critical_time_bonus = 0
