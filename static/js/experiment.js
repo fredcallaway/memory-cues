@@ -285,12 +285,15 @@ async function initializeExperiment() {
       .appendTo(stage)
 
       var questions = [
-        'There is no penalty for giving an incorrect response.',
+        'There is no penalty for entering an incorrect word.',
         'There is no penalty for leaving the text box empty.',
         "You only earn money for responding quickly if you give a correct response.",
       ]
-      var correct = ['False', 'True', 'False']
-      var radios = questions.map(q=> make_radio(stage, q, ['True', 'False']))
+      var correct = ['False', 'True', 'False', 'leave the text box empty']
+      var radios = questions.map(q => make_radio(stage, q, ['True', 'False']))
+      radios.push(make_radio(stage, "If you don't know the word you should...", [
+        'guess a random word', 'leave the text box empty'
+      ]))
       var n_try = 0
     
       let btn = $('<button>', {class: 'btn btn-primary center'})
@@ -323,7 +326,7 @@ async function initializeExperiment() {
     type: `${PARAMS.critical_type}`,
     bonus: PARAMS.bonus_rate_critical,
     prime: PARAMS.prime,
-    // time_bonus: PARAMS.bonus_rate_critical_speed,
+    time_bonus: PARAMS.bonus_rate_critical_speed,
     recall_time: PARAMS.recall_time,
     timeline: critical_timeline(),
     on_finish(data) {
@@ -360,15 +363,6 @@ async function initializeExperiment() {
       'Did you experience any technical problems (e.g., images not displaying)?',
       'Any other comments?',
     ].map(prompt => ({prompt, rows: 2, columns: 70}))
-  }
-
-  let test_multi = {
-    type: `multi-recall`,
-    practice: true,
-    prime: true,
-    bonus: PARAMS.bonus_rate_critical,
-    recall_time: PARAMS.recall_time,
-    options: [{"word":"milk","image":"../static/stimuli/images/pool/sun_antxeexzhaspkvlj.jpg"},{"word":"egg","image":"../static/stimuli/images/river/sun_aiazxjumlgdcrfpn.jpg"}]
   }
 
   let timeline = [  // = timeline =

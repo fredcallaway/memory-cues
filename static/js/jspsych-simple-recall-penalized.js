@@ -24,10 +24,8 @@
         ### Practice round
 
         - Hit space. An image, text box, and timer will appear.
-        - If you remember the word, type it into the text box. Otherwise,
-          leave it blank.
+        - If you remember the word, type it into the text box. Otherwise, leave it blank.
         - Hit enter to submit your response.
-        - This practice round does not count towards your bonus.
       ` : ` `
         // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
