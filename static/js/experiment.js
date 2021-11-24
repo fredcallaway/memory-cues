@@ -89,10 +89,10 @@ async function initializeExperiment() {
   // let afc_bonus = (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat
   let pretest_bonus = (PARAMS.bonus_rate_pretest + PARAMS.bonus_rate_speed) * PARAMS.n_pair * (1+PARAMS.n_repeat)
   let distractor_bonus = PARAMS.bonus_rate_distractor * PARAMS.n_distractor
-  let n_critical = (PARAMS.critical_type == 'simple-recall' ? PARAMS.n_pair : PARAMS.n_pair/2) - PARAMS.n_practice_critical
-  let critical_bonus = (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_speed) * n_critical
+  let n_critical = PARAMS.n_pair - PARAMS.n_practice_critical
+  let critical_bonus = (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_critical_speed * PARAMS.recall_time/1000) * n_critical
   let max_bonus = pretest_bonus + distractor_bonus + critical_bonus
-  
+
   let welcome_block = button_trial(`
     # Welcome 😃
 
