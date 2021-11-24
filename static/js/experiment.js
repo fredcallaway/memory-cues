@@ -1,7 +1,7 @@
 
 const PARAMS = { // = PARAMS =
   pretest_type: 'simple-recall',
-  critical_type: 'multi-recall',
+  critical_type: 'simple-recall-penalized',
   overlay: true,
   fancy_critical: false,  
 
@@ -140,84 +140,7 @@ async function initializeExperiment() {
     return {timeline: [intro, block]}
   }
 
-  function make_afc_pairs() {
-    return _.chain(pairs)
-      .shuffle()
-      .map(({image, word}, i, arr) => ({
-        word: word,
-        target_image: image,
-        lure_images: [arr[(i+1) % arr.length].image],
-      }))
-      .shuffle()
-      .value()
-  }
-
-  function make_afc_block(block_i) {
-    let intro = button_trial(`
-      # Test (${block_i+1} / ${PARAMS.n_repeat})
-
-      Now we'll see how well you've learned the pairs. On each round,
-      you will see a word and two images. ${PARAMS.afc_time == null ? `
-        Try to select the image that goes with the word.
-      ` : `
-        Then you'll have ${PARAMS.afc_time / 1000} seconds to select the image that goes with the word.
-      `}
-
-      You will earn ${fmt_cents(PARAMS.bonus_rate_afc)} for each
-      correct answer. You will also receive a small extra bonus for answering
-      quickly (and correctly), so try to respond as fast as you can
-      (while staying accurate)!
-
-      To make things harder, we won't tell you which
-      ones were correct! 😉
-    ` + ((block_i == 0) ? "We'll start with a practice round." : ""))
-
-
-    let timeline = make_afc_pairs()
-    
-    // Specialize by number
-    if (block_i == 0) {
-      timeline[0].practice = true
-    } else if (block_i == PARAMS.n_repeat - 1) {
-      timeline = timeline.concat(make_afc_pairs())
-    }
-    var n_correct = 0
-    var time_bonus = 0
-    let block = {
-      type: 'afc',
-      max_time: PARAMS.afc_time,
-      bonus_rate: PARAMS.bonus_rate_afc,
-      timeline,
-      on_finish: data => {
-        let {correct, rt} = data
-        PRETEST_LOG.push({word: data.trial.word, correct, rt})
-        console.log("PRETEST_LOG", PRETEST_LOG)
-        n_correct += data.correct
-        if (data.correct) {
-          let prop_left = (PARAMS.afc_bonus_time - data.rt) / PARAMS.afc_bonus_time
-          time_bonus += prop_left * PARAMS.bonus_rate_speed
-        }
-        data.block = block_i + 1
-      }
-    }
-    
-    let feedback = button_trial(() => {
-      saveData()
-      time_bonus = Math.ceil(time_bonus)
-      BONUS += time_bonus
-      return `
-        # Results
-
-        - You were correct on ${n_correct} out of ${block.timeline.length} rounds. 
-           That's ${fmt_cents(n_correct * PARAMS.bonus_rate_afc)} added to your bonus.
-        - You earned ${fmt_cents(time_bonus)} for responding quickly.
-        - Your current bonus is ${fmt_bonus()}.
-      `
-    })
-    return {timeline: [intro, block, feedback]}
-  }
-
-  function make_simple_block(block_i, args) {
+  function make_test_block(block_i, args) {
     let {double, feedback} = _.defaults(args, {double: false, feedback:'none'})
 
     let intro = button_trial(`
@@ -295,11 +218,6 @@ async function initializeExperiment() {
     return {timeline: [intro, block, summary]}
   }
 
-  let make_test_block = {
-    'afc': make_afc_block,
-    'simple-recall': make_simple_block
-  }[PARAMS.pretest_type]
-
   let distractor_intro = button_trial(`
     # Math challenge
 
@@ -321,58 +239,76 @@ async function initializeExperiment() {
   assert(PARAMS.bonus_rate_critical_speed == 0.1)
 
   let [show_left, show_right, choose_left, choose_right] = MULTI_KEYS
-  let type_instruct = {
-    'simple-recall': `
-      On each round, we will display one of the pictures you saw before and
-      you'll have ${PARAMS.recall_time / 1000} seconds to type in the word that
-      was paired with the image. You will earn ${PARAMS.bonus_rate_critical} cents
-      for every correct response. But you will lose
-      ${PARAMS.bonus_rate_critical} cents for every *incorrect* response. **There is
-      no penalty for leaving the text box blank.**
 
-      Additionally, you will earn a tenth of a cent for each second left on the timer
-      when you respond. **You still earn this bonus for empty responses, but not
-      for incorrect responses**. If you don't remember the word, it might be best
-      to give up quickly (leaving the text box empty) so that you can get the time
-      bonus. It is *not* a good idea to guess, unless you are pretty sure
-      that you remembered the right word.
+  // let critical_instruct = button_trial(`
+  //   # Final test
 
-      The first ${PARAMS.n_practice_critical} rounds are practice,
-      and don't count towards your bonus.
-    `,
-    'multi-recall': `
-      On each round, you will be shown two images and you have to remember the
-      word associated with _one_ of them. We will only display one image at a
-      time, but you can switch between them using the ${show_left} and
-      ${show_right} keys. As soon as you remember one of the words, press
-      ${choose_left} (for the left image) or ${choose_right} (for the right
-      image). Then type the word into the text box that appears and press
-      enter again to submit.
-    `,
-    'multi-recall-flip': `
-      On each round, you will be shown two images and you have to remember the
-      word associated with _one_ of them. We will only display one image at a
-      time, but you can switch between them using the space bar. As soon as
-      you remember one of the words, make sure the associated image is on the
-      screen and press enter. Then type the word into the text box that
-      appears and press enter again to submit.
-    `
-  }[PARAMS.critical_type]
+  //   You're almost done! In this final test round, you will have to guess
+  //   the words like before, but we've raised the stakes. This time, you'll
+  //   earn ${PARAMS.bonus_rate_critical} cents for every correct response.
+  //   But you'll _lose_ ${PARAMS.bonus_rate_critical} cents for every
+  //   _incorrect_ response. We've also raised the speed bonus to a tenth of a
+  //   cent for each second left on the timer when you respond.
 
-  let critical_instruct = button_trial(`
-    # Final test
+  //   **Take note!** If you don't know the word, you can leave the text box
+  //   empty, and you'll still get the time bonus. If you give an incorrect
+  //   response, you give up the bonus. So, if you don't think you know
+  //   the word, it might be best to give up quickly to get the time bonus and
+  //   avoid the error penalty.
 
-    You're almost done! In this last section, we will test your knowledge one
-    more time. But it will be a little different this time. ${type_instruct}
+  //   Before we start, please 
+  // `, {
+  // })
+
+  let critical_instruct = {
+    type: 'custom',
+    func: async function (stage) {
+      $('<div>')
+      .html(markdown(`
+        # Final test
+
+        You're almost done! In this final test round, you will have to guess
+        the words like before, but we've raised the stakes. This time, you'll
+        earn ${PARAMS.bonus_rate_critical} cents for every correct response.
+        But you'll _lose_ ${PARAMS.bonus_rate_critical} cents for every
+        _incorrect_ response. We've also raised the speed bonus to a tenth of a
+        cent for each second left on the timer when you respond.
+
+        **Take note!** If you don't know the word, you can leave the text box
+        empty, and you'll still get the time bonus. If you give an incorrect
+        response, you give up the bonus. So, if you don't think you know
+        the word, it might be best to give up quickly to get the time bonus and
+        avoid the error penalty.
+
+        Before we start, please answer the following questions:
+      `))
+      .appendTo(stage)
+
+      var questions = [
+        'There is no penalty for giving an incorrect response.',
+        'There is no penalty for leaving the text box empty.',
+        "You only earn money for responding quickly if you give a correct response.",
+      ]
+      var correct = ['False', 'True', 'False']
+      var radios = questions.map(q=> make_radio(stage, q, ['True', 'False']))
+      var n_try = 0
     
-    You will earn a higher bonus on these rounds,
-    ${PARAMS.bonus_rate_critical} cents for each correct response. You'll 
-    get a small additional bonus for responding quickly like before.
-    We'll start with a practice round. 
-  `, {
-    // Like before, you will earn a little extra money for responding quickly,
-    // so try to be as fast as you can while maintaining accuracy!
-  })
+      let btn = $('<button>', {class: 'btn btn-primary center'})
+      .text('Submit')
+      .appendTo($('<div>').css('text-align', 'center').appendTo(stage))
+
+      while (true) {
+        await new Promise(resolve => btn.click(resolve))
+        console.log(radios.map((r, i) => r()))
+        let all_good = _.all(radios.map((r, i) => r() == correct[i]))
+        if (all_good) {
+          return {'critical_quiz': n_try}
+        } else {
+          alert("You answered at least one question wrong. Please try again.")
+        }
+      }
+    }
+  }
 
   function critical_timeline() {
     let timeline = _.shuffle(pairs)

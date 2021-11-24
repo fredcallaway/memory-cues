@@ -3,7 +3,6 @@ function updateExisting(target, src) {
         .forEach(k => target[k] = (src.hasOwnProperty(k) ? src[k] : target[k]));
 }
 
-
 function randString(n) {
   s = ''
   while (s.length < n) {
@@ -34,6 +33,96 @@ function sum(xs) {
 function mean(xs) {
   return sum(xs) / length(xs)
 }
+
+function make_radio(div, question, choices) {
+  $("<p>")
+  .css('margin-top', 20)
+  .html(question)
+  .appendTo(div)
+
+  let name = ('R' + Math.random()).replace('.', '')
+  $('<div>')
+  .html(choices.map(choice => `
+    <input type="radio" id="${choice}" name="${name}" value="${choice}">
+    <label for="${choice}">${choice}</label>
+  `).join('\n'))
+  .appendTo(div)
+  console.log('radio name', name)
+  return () => $(`input[name=${name}]:checked`).val()
+}
+
+function make_text(div, question, opts={}) {
+      let {height=50, width='80%'} = opts
+      $("<p>")
+      .css('margin-top', 20)
+      .html(question)
+      .appendTo(div)
+
+      let text = $('<textarea>')
+      .css({
+        margin: '10px 10%',
+        padding: '10px',
+        width,
+        height
+      })
+      .appendTo(div)
+      .focus()
+
+      return () => text.val()
+}
+
+function make_slider(opt) {
+  console.log('make_slider', opt)
+  let slider = $("<div>")
+  .css('margin', '60px')
+  .slider(opt)
+  for (let [lab, val] of Object.entries(opt.labels)) {
+    let pos = (val - opt.min) / (opt.max - opt.min)
+    $(`<label>${lab}</label>`)
+    .css({
+      'position': 'absolute',
+      'left': `${100 * pos}%`,
+      'text-align': 'center',
+      'width': '150px',
+      'transform': 'translate(-50%, 100%)',
+    })
+    .appendTo(slider)
+  }
+  return slider
+}
+
+async function make_button(div, text, opts={}) {
+  let {pre_delay=0, post_delay=0.2, cls = 'btn btn-primary center'} = opts;
+
+  let id = text.toLowerCase().replace(' ', '-')
+  let btn = $('<button>', {class: cls, id})
+  .text(text)
+  .appendTo(div)
+
+  if (pre_delay > 0) {
+    btn.prop('disabled', true)
+    await sleep(1000 * pre_delay)
+    btn.prop('disabled', false)
+  }
+  await new Promise(resolve => btn.click(resolve))
+  btn.prop('disabled', true)
+  await sleep(1000 * post_delay)
+  return text
+}
+
+async function make_buttons(div, texts, opts={}) {
+  container = $('<div>')
+  .css('text-align', 'center')
+  .appendTo(div)
+  opts.cls = 'btn btn-primary'
+  let buttons = texts.map(t => make_button(container, t, opts))
+  let prom = Promise.any(buttons)
+  if (opts.remove_after) {
+    prom.then(() => container.remove())
+  }
+  return prom
+}
+
 
 function getKeyPress(options) {
   return new Promise(function(resolve) {
