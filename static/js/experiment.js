@@ -302,6 +302,7 @@ async function initializeExperiment() {
 
       while (true) {
         await new Promise(resolve => btn.click(resolve))
+        n_try += 1
         console.log(radios.map((r, i) => r()))
         let all_good = _.all(radios.map((r, i) => r() == correct[i]))
         if (all_good) {
