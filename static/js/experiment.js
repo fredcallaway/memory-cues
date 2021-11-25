@@ -124,7 +124,7 @@ async function initializeExperiment() {
 
   function make_train_block(i) {
     let intro = button_trial(`
-      # Training (${i+1} / ${PARAMS.n_repeat})
+      # Training
 
       You will see a series of images with words printed on top. Try to
       commit each pair to memory. You will be tested on them later.
@@ -144,7 +144,7 @@ async function initializeExperiment() {
     let {double, feedback} = _.defaults(args, {double: false, feedback:'none'})
 
     let intro = button_trial(`
-      # Test (${block_i+1} / ${PARAMS.n_repeat})
+      # Test
 
       Now we'll see how well you've learned the pairs. 
       On each round, we will display one of the pictures you saw before and
@@ -221,7 +221,7 @@ async function initializeExperiment() {
   let distractor_intro = button_trial(`
     # Math challenge
 
-    Before continuing to the final memory test, you can earn some extra bonus
+    Before continuing to the memory test, you can earn some extra bonus
     money in a speeded math challenge. On each round, you'll see a simple
     arithmetic problem and you'll have five seconds to type in the answer
     (press enter to submit). You'll earn ${fmt_cents(PARAMS.bonus_rate_distractor)}
@@ -368,8 +368,8 @@ async function initializeExperiment() {
   let timeline = [  // = timeline =
     welcome_block,
     make_train_block(0),
-    make_test_block(0),
-    make_train_block(1),
+    // make_test_block(0),
+    // make_train_block(1),
     distractor,
     make_test_block(1, {double: true, feedback: "none"}),
     critical_instruct,
