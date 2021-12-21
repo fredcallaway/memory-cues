@@ -14,7 +14,7 @@ const PARAMS = { // = PARAMS =
   n_practice_critical: 3,
   n_distractor: 10,
 
-  bonus_rate_critical: 2,
+  bonus_rate_critical: 3,
   bonus_rate_critical_speed: 1/10,
   bonus_rate_afc: 1,
   bonus_rate_pretest: 1,
