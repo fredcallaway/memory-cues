@@ -63,27 +63,28 @@
       .appendTo(display)
 
       async function ask_judgement(type) {
+        console.log('ask_judgement', type)
         stage.empty()
         let text = {
           confidence: `
             <h4>How confident are you in your response?</h4>
             <p>Press a number between 1 and 5.</p>
 
-            <b>1</b>&nbsp;&nbsp; I am not at all sure my answer is correct<br>
-            <b>2</b>&nbsp;&nbsp; I am not so sure my answer is correct<br>
-            <b>3</b>&nbsp;&nbsp; I am more or less sure my answer is correct<br>
-            <b>4</b>&nbsp;&nbsp; I am nearly sure my answer is correct<br>
-            <b>5</b>&nbsp;&nbsp; I am absolutely sure my answer is correct<br>
+            <b>1</b>&nbsp;&nbsp; I am not at all sure my response is correct<br>
+            <b>2</b>&nbsp;&nbsp; I am not so sure my response is correct<br>
+            <b>3</b>&nbsp;&nbsp; I am more or less sure my response is correct<br>
+            <b>4</b>&nbsp;&nbsp; I am nearly sure my response is correct<br>
+            <b>5</b>&nbsp;&nbsp; I am absolutely sure my response is correct<br>
           `,
           fok: `
-            <h4>How much do you think you know the answer?</h4>
+            <h4>How much do you think you know the work?</h4>
             <p>Press a number between 1 and 5.</p>
 
-            <b>1</b>&nbsp;&nbsp; I am absolutely sure I do not know the answer<br>
-            <b>2</b>&nbsp;&nbsp; I am rather sure I do not know the answer<br>
-            <b>3</b>&nbsp;&nbsp; I have a vague impression I know the answer<br>
-            <b>4</b>&nbsp;&nbsp; I am rather sure I know the answer<br>
-            <b>5</b>&nbsp;&nbsp; I am absolutely sure I know the answer<br>
+            <b>1</b>&nbsp;&nbsp; I am absolutely sure I do not know the word<br>
+            <b>2</b>&nbsp;&nbsp; I am rather sure I do not know the word<br>
+            <b>3</b>&nbsp;&nbsp; I have a vague impression I know the word<br>
+            <b>4</b>&nbsp;&nbsp; I am rather sure I know the word<br>
+            <b>5</b>&nbsp;&nbsp; I am absolutely sure I know the word<br>
           `
         }[type]
         
