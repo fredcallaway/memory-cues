@@ -315,6 +315,14 @@ async function initializeExperiment() {
       }
     }
   }
+  let critical_instruct2 = button_trial(`
+    # One more thing
+
+    After each round, we will ask a question about how well you remember the
+    word for the image on that round. If you gave a response, we will ask how
+    confident you are that you entered the correct word. If you skipped the
+    trial, you might still have the feeling that you knew the word, so we will
+    ask how much you felt that you knew the word.`)
 
   function critical_timeline() {
     let timeline = _.shuffle(pairs)
@@ -376,6 +384,7 @@ async function initializeExperiment() {
     distractor,
     make_test_block(1, {double: true, feedback: "none"}),
     critical_instruct,
+    critical_instruct2,
     critical_block,
     debrief,
   ];

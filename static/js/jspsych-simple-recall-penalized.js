@@ -77,7 +77,7 @@
             <b>5</b>&nbsp;&nbsp; I am absolutely sure my response is correct<br>
           `,
           fok: `
-            <h4>How much do you think you know the work?</h4>
+            <h4>How much do you feel that you know the word?</h4>
             <p>Press a number between 1 and 5.</p>
 
             <b>1</b>&nbsp;&nbsp; I am absolutely sure I do not know the word<br>
