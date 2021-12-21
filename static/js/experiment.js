@@ -14,6 +14,8 @@ const PARAMS = { // = PARAMS =
   n_practice_critical: 3,
   n_distractor: 10,
 
+  critical_penalty: 1,
+
   bonus_rate_critical: 3,
   bonus_rate_critical_speed: 1/10,
   bonus_rate_afc: 1,
@@ -269,7 +271,7 @@ async function initializeExperiment() {
         You're almost done! In this final test round, you will have to guess
         the words like before, but we've raised the stakes. This time, you'll
         earn ${PARAMS.bonus_rate_critical} cents for every correct response.
-        But you'll _lose_ ${PARAMS.bonus_rate_critical} cents for every
+        But you'll _lose_ one cent for every
         _incorrect_ response. You can _skip_ a round by pressing enter without
         typing anything in the text box. _There is no penalty for skipping._
 
@@ -336,6 +338,7 @@ async function initializeExperiment() {
   let critical_block = {
     type: `${PARAMS.critical_type}`,
     bonus: PARAMS.bonus_rate_critical,
+    penalty: PARAMS.critical_penalty,
     prime: PARAMS.prime,
     time_bonus: PARAMS.bonus_rate_critical_speed,
     recall_time: PARAMS.recall_time,

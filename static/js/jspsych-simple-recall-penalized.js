@@ -17,7 +17,7 @@
     plugin.trial = async function(display_element, trial) {
       // console.log('begin simple-recall trial', trial)
       let display = $(display_element);
-      let {word, image, practice=false, time_bonus=0, bonus, recall_time} = trial;
+      let {word, image, practice=false, time_bonus=0, bonus, penalty, recall_time} = trial;
 
       let header = practice ?
       `
@@ -175,10 +175,10 @@
             .css('color', '#888')
             .appendTo(feedback)
           } else {
-            add_bonus(-bonus)
+            add_bonus(-penalty)
             error = true
             $('<p>')
-            .text(`Incorrect! -${bonus}¢`)
+            .text(`Incorrect! -${penalty}¢`)
             .css('color', '#b00')
             .appendTo(feedback)
           }
