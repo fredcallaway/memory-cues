@@ -1,4 +1,3 @@
-
 const PARAMS = { // = PARAMS =
   pretest_type: 'simple-recall',
   critical_type: 'simple-recall-penalized',
@@ -271,29 +270,32 @@ async function initializeExperiment() {
         the words like before, but we've raised the stakes. This time, you'll
         earn ${PARAMS.bonus_rate_critical} cents for every correct response.
         But you'll _lose_ ${PARAMS.bonus_rate_critical} cents for every
-        _incorrect_ response. We've also raised the speed bonus to a tenth of a
-        cent for each second left on the timer when you respond.
+        _incorrect_ response. You can _skip_ a round by pressing enter without
+        typing anything in the text box. _There is no penalty for skipping._
 
-        **Take note!** If you don't know the word, you can leave the text box
-        empty, and you'll still get the time bonus. If you give an incorrect
-        response, you give up the bonus. So, if you don't think you know
-        the word, it might be best to give up quickly to get the time bonus and
-        avoid the error penalty.
+        We've also raised the speed bonus to a tenth of a cent for each second
+        left on the timer when you respond. And, unlike before, you will earn
+        the bonus even if you don't give a correct response. So if you don't
+        think you know the word, it might be best to quickly skip the trial to get
+        the time bonus and avoid the error penalty.
 
-        Before we start, please answer the following questions:
+        ## Quiz
       `))
       .appendTo(stage)
 
       var questions = [
-        'There is no penalty for entering an incorrect word.',
-        'There is no penalty for leaving the text box empty.',
-        "You only earn money for responding quickly if you give a correct response.",
+        'You pay a penalty if you enter an incorrect word.',
+        'You pay a penalty if you leave the text box empty.',
+        'You only earn money for responding quickly if you give a correct response.',
       ]
-      var correct = ['False', 'True', 'False', 'leave the text box empty']
       var radios = questions.map(q => make_radio(stage, q, ['True', 'False']))
       radios.push(make_radio(stage, "If you don't know the word you should...", [
-        'guess a random word', 'leave the text box empty'
+        'guess a random word', 'wait until the timer runs out', 'skip the trial'
       ]))
+      radios.push(make_radio(stage, "How do you skip a trial?", [
+        'write "skip" and press enter', 'press enter when the text box is empty'
+      ]))
+      var correct = ['True', 'False', 'False', 'skip the trial', 'press enter when the text box is empty']
       var n_try = 0
     
       let btn = $('<button>', {class: 'btn btn-primary center'})

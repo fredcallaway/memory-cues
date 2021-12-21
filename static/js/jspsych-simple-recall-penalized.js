@@ -26,6 +26,7 @@
         - Hit space. An image, text box, and timer will appear.
         - If you remember the word, type it into the text box. Otherwise, leave it blank.
         - Hit enter to submit your response.
+        - A question will appear. Press a key between 1 and 5 to answer it and move onto the next round.
       ` : ` `
         // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 
@@ -61,20 +62,56 @@
       .css('margin-top', 40)
       .appendTo(display)
 
-      function showFeedback() {
+      async function ask_judgement(type) {
         stage.empty()
-        let fb = $('<div>')
+        let text = {
+          confidence: `
+            <h4>How confident are you in your response?</h4>
+            <p>Press a number between 1 and 5.</p>
+
+            <b>1</b>&nbsp;&nbsp; I am not at all sure my answer is correct<br>
+            <b>2</b>&nbsp;&nbsp; I am not so sure my answer is correct<br>
+            <b>3</b>&nbsp;&nbsp; I am more or less sure my answer is correct<br>
+            <b>4</b>&nbsp;&nbsp; I am nearly sure my answer is correct<br>
+            <b>5</b>&nbsp;&nbsp; I am absolutely sure my answer is correct<br>
+          `,
+          fok: `
+            <h4>How much do you think you know the answer?</h4>
+            <p>Press a number between 1 and 5.</p>
+
+            <b>1</b>&nbsp;&nbsp; I am absolutely sure I do not know the answer<br>
+            <b>2</b>&nbsp;&nbsp; I am rather sure I do not know the answer<br>
+            <b>3</b>&nbsp;&nbsp; I have a vague impression I know the answer<br>
+            <b>4</b>&nbsp;&nbsp; I am rather sure I know the answer<br>
+            <b>5</b>&nbsp;&nbsp; I am absolutely sure I know the answer<br>
+          `
+        }[type]
+        
+        $('<div>')
+        .css('text-align', 'left')
+        .css('margin', '0 auto')
+        .css('width', '400px')
+        .html(text)
+        .appendTo(stage)
+        let {key, rt} = await getKeyPress(['1', '2', '3', '4', '5'])
+        log('judgement', {type, key, rt})
+      }
+
+      function showFeedback(fb) {
+        stage.empty()
+        $('<div>')
         .css('font-size', '32pt')
         .css('font-weight', 'bold')
         .css('margin-top', 120)
-        .appendTo(stage)
+        .appendTo(stage).
+        append(fb)
 
         sleep(1500)
         .then(()=> {
           display.empty()
           jsPsych.finishTrial(data)
         })
-        return fb
+        
       }
 
       let space = $('<div>')
@@ -114,7 +151,7 @@
             log('backspace')
         }
       })
-      .keypress(function(event) {
+      .keypress(async function(event) {
         console.log(event.key)
         log('type', {key: event.key, input: input.val()});
         if (event.keyCode == 13 || event.which == 13) {  // press enter
@@ -144,11 +181,12 @@
             .css('color', '#b00')
             .appendTo(feedback)
           }
+
           // if (response != word && practice) {
           //   BONUS += bonus
           // }
 
-          if (!error && time_bonus > 0) {
+          if (time_bonus > 0) {
             let tb = Math.round(10 * time_bonus * timer.seconds_left) / 10
             add_bonus(tb)
             if (tb > 0) {
@@ -158,12 +196,9 @@
               .appendTo(feedback)
             }
           }
-
-          if (response == word) {
-            showFeedback().append(feedback)
-          } else {
-            showFeedback().append(feedback)
-          }
+          let type = response == '' ? 'fok' : 'confidence'
+          await ask_judgement(type)
+          showFeedback(feedback, response)
         }
       });
 
@@ -172,7 +207,7 @@
       timer.promise.then(() => {
         if (!responded) {
           log('timeout')
-          showFeedback().text('Timeout').css('color', '#888')
+          showFeedback('Timeout', null)
         }
       })
     } // plugin.trial
