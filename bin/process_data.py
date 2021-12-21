@@ -73,18 +73,20 @@ def parse_simple(row):
                 continue  # this is probably a mispress
             begin_type = e['time']
             x['typing_rt'] = begin_type - start
+
+        elif e['event'] == 'judgement':
+            x['judgement_type'] = e['type']
+            x['judgement'] = int(e['key'])
         
         elif e['event'] == 'response':
             x['response'] = e['response']
             x['type_time'] = e['time'] - begin_type
             x['rt'] = e['time'] - start
             x['response_type'] = classify_response(x['word'], e['response'], row.wid)
-            return x
         
         elif e['event'] == 'timeout':
             x['response_type'] = 'timeout'
-            return x
-    assert False
+    return x
 
 def parse_multi_flip(row):
     ev = literal_eval(row.events)
