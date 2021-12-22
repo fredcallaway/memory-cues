@@ -10,13 +10,13 @@ const PARAMS = { // = PARAMS =
   afc_bonus_time: 5000,
   
   n_pair: 40,
-  n_repeat: 2,
+  n_repeat: 1,
   n_practice_critical: 3,
   n_distractor: 10,
 
   critical_penalty: 1,
 
-  bonus_rate_critical: 3,
+  bonus_rate_critical: 5,
   bonus_rate_critical_speed: 1/10,
   bonus_rate_afc: 1,
   bonus_rate_pretest: 1,
@@ -271,15 +271,13 @@ async function initializeExperiment() {
         You're almost done! In this final test round, you will have to guess
         the words like before, but we've raised the stakes. This time, you'll
         earn ${PARAMS.bonus_rate_critical} cents for every correct response.
-        But you'll _lose_ one cent for every
-        _incorrect_ response. You can _skip_ a round by pressing enter without
-        typing anything in the text box. _There is no penalty for skipping._
+        But you'll _lose_ one cent for every _incorrect_ response. You can
+        _skip_ a round by pressing enter without typing anything in the text
+        box. _There is no penalty for skipping._
 
         We've also raised the speed bonus to a tenth of a cent for each second
         left on the timer when you respond. And, unlike before, you will earn
-        the bonus even if you don't give a correct response. So if you don't
-        think you know the word, it might be best to quickly skip the trial to get
-        the time bonus and avoid the error penalty.
+        the bonus even if you don't give a correct response.
 
         ## Quiz
       `))
@@ -287,17 +285,17 @@ async function initializeExperiment() {
 
       var questions = [
         'You pay a penalty if you enter an incorrect word.',
-        'You pay a penalty if you leave the text box empty.',
-        'You only earn money for responding quickly if you give a correct response.',
+        'You pay a penalty if you skip a round.',
+        'You only earn money for responding quickly if you enter the correct word.',
       ]
       var radios = questions.map(q => make_radio(stage, q, ['True', 'False']))
-      radios.push(make_radio(stage, "If you don't know the word you should...", [
-        'guess a random word', 'wait until the timer runs out', 'skip the trial'
-      ]))
-      radios.push(make_radio(stage, "How do you skip a trial?", [
+      // radios.push(make_radio(stage, "If you don't know the word you should...", [
+      //   'guess a random word', 'wait until the timer runs out', 'skip the trial'
+      // ]))
+      radios.push(make_radio(stage, "How do you skip a round?", [
         'write "skip" and press enter', 'press enter when the text box is empty'
       ]))
-      var correct = ['True', 'False', 'False', 'skip the trial', 'press enter when the text box is empty']
+      var correct = ['True', 'False', 'False', 'press enter when the text box is empty']
       var n_try = 0
     
       let btn = $('<button>', {class: 'btn btn-primary center'})
