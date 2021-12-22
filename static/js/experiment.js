@@ -10,7 +10,7 @@ const PARAMS = { // = PARAMS =
   afc_bonus_time: 5000,
   
   n_pair: 40,
-  n_repeat: 2,
+  n_repeat: 1,
   n_practice_critical: 3,
   n_distractor: 10,
 
