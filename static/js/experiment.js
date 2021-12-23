@@ -369,7 +369,7 @@ async function initializeExperiment() {
       `)
     },
     questions: [
-      'Did you notice anything about the letters that flashed in the last test round?',
+      // 'Did you notice anything about the letters that flashed in the last test round?',
       'Were the instructions confusing, hard to understand, or too long?',
       'Was the interface at all difficult to use?',
       'Did you experience any technical problems (e.g., images not displaying)?',
