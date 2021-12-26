@@ -17,7 +17,7 @@ const PARAMS = { // = PARAMS =
   critical_penalty: 1,
 
   bonus_rate_critical: 3,
-  bonus_rate_critical_speed: 0,
+  bonus_rate_critical_speed: 1/10,
   bonus_rate_afc: 1,
   bonus_rate_pretest: 1,
   bonus_rate_distractor: 1,
@@ -237,7 +237,7 @@ async function initializeExperiment() {
   }
   let distractor = {timeline: [distractor_intro, distractor_task]}
 
-  // assert(PARAMS.bonus_rate_critical_speed == 0.1)
+  assert(PARAMS.bonus_rate_critical_speed == 0.1)
 
   let [show_left, show_right, choose_left, choose_right] = MULTI_KEYS
 
@@ -271,9 +271,15 @@ async function initializeExperiment() {
         You're almost done! In this final test round, you will have to guess
         the words like before, but we've raised the stakes. This time, you'll
         earn ${PARAMS.bonus_rate_critical} cents for every correct response.
-        But you'll _lose_ one cent for every _incorrect_ response. You can
-        _skip_ a round by pressing enter without typing anything in the text
-        box. _There is no penalty for skipping._
+        But you'll _lose_ one cent for every
+        _incorrect_ response. You can _skip_ a round by pressing enter without
+        typing anything in the text box. _There is no penalty for skipping._
+
+        We've also raised the speed bonus to a tenth of a cent for each second
+        left on the timer when you respond. And, unlike before, you will earn
+        the bonus even if you don't give a correct response. So if you don't
+        think you know the word, it might be best to quickly skip the trial to get
+        the time bonus and avoid the error penalty.
 
         ## Quiz
       `))
@@ -281,17 +287,17 @@ async function initializeExperiment() {
 
       var questions = [
         'You pay a penalty if you enter an incorrect word.',
-        'You pay a penalty if you skip a round.',
-        // 'You only earn money for responding quickly if you enter the correct word.',
+        'You pay a penalty if you leave the text box empty.',
+        'You only earn money for responding quickly if you give a correct response.',
       ]
       var radios = questions.map(q => make_radio(stage, q, ['True', 'False']))
-      // radios.push(make_radio(stage, "If you don't know the word you should...", [
-      //   'guess a random word', 'wait until the timer runs out', 'skip the trial'
-      // ]))
-      radios.push(make_radio(stage, "How do you skip a round?", [
+      radios.push(make_radio(stage, "If you don't know the word you should...", [
+        'guess a random word', 'wait until the timer runs out', 'skip the trial'
+      ]))
+      radios.push(make_radio(stage, "How do you skip a trial?", [
         'write "skip" and press enter', 'press enter when the text box is empty'
       ]))
-      var correct = ['True', 'False', /*'False',*/ 'press enter when the text box is empty']
+      var correct = ['True', 'False', 'False', 'skip the trial', 'press enter when the text box is empty']
       var n_try = 0
     
       let btn = $('<button>', {class: 'btn btn-primary center'})
@@ -365,7 +371,7 @@ async function initializeExperiment() {
       `)
     },
     questions: [
-      // 'Did you notice anything about the letters that flashed in the last test round?',
+      'Did you notice anything about the letters that flashed in the last test round?',
       'Were the instructions confusing, hard to understand, or too long?',
       'Was the interface at all difficult to use?',
       'Did you experience any technical problems (e.g., images not displaying)?',
