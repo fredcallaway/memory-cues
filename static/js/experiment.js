@@ -17,7 +17,7 @@ const PARAMS = { // = PARAMS =
   critical_penalty: 1,
 
   bonus_rate_critical: 3,
-  bonus_rate_critical_speed: 1/10,
+  bonus_rate_critical_speed: 0,
   bonus_rate_afc: 1,
   bonus_rate_pretest: 1,
   bonus_rate_distractor: 1,
@@ -237,7 +237,7 @@ async function initializeExperiment() {
   }
   let distractor = {timeline: [distractor_intro, distractor_task]}
 
-  assert(PARAMS.bonus_rate_critical_speed == 0.1)
+  // assert(PARAMS.bonus_rate_critical_speed == 0.1)
 
   let [show_left, show_right, choose_left, choose_right] = MULTI_KEYS
 
@@ -275,10 +275,6 @@ async function initializeExperiment() {
         _skip_ a round by pressing enter without typing anything in the text
         box. _There is no penalty for skipping._
 
-        We've also raised the speed bonus to a tenth of a cent for each second
-        left on the timer when you respond. And, unlike before, you will earn
-        the time bonus even if you don't give a correct response.
-
         ## Quiz
       `))
       .appendTo(stage)
@@ -286,7 +282,7 @@ async function initializeExperiment() {
       var questions = [
         'You pay a penalty if you enter an incorrect word.',
         'You pay a penalty if you skip a round.',
-        'You only earn money for responding quickly if you enter the correct word.',
+        // 'You only earn money for responding quickly if you enter the correct word.',
       ]
       var radios = questions.map(q => make_radio(stage, q, ['True', 'False']))
       // radios.push(make_radio(stage, "If you don't know the word you should...", [
@@ -295,7 +291,7 @@ async function initializeExperiment() {
       radios.push(make_radio(stage, "How do you skip a round?", [
         'write "skip" and press enter', 'press enter when the text box is empty'
       ]))
-      var correct = ['True', 'False', 'False', 'press enter when the text box is empty']
+      var correct = ['True', 'False', /*'False',*/ 'press enter when the text box is empty']
       var n_try = 0
     
       let btn = $('<button>', {class: 'btn btn-primary center'})
