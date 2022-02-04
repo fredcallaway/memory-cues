@@ -27,7 +27,7 @@ def build_classifiers(pdf):
         if pd.isna(pairs):
             return None
         words = [x['word'] for x in literal_eval(pairs)]
-        spell = SpellChecker(None)
+        spell = spell = SpellChecker(None)
         spell.word_frequency.load_words(words)
 
         # that's right, three layers of nested functions
@@ -58,8 +58,7 @@ def parse_simple(row):
         'word': t['word'],
         'image': t['image'],
         'practice': t.get('practice', False),
-        'block': int(getattr(row, 'block', 0)),
-        'backspace': False
+        'block': int(getattr(row, 'block', 0))
     }
     begin_type = float('nan')
     # x['word_type'] = classify_word(x['word'])
@@ -68,11 +67,10 @@ def parse_simple(row):
         # if e['event'] == 'start trial':
         if e['event'] == 'show image':
             start = e['time']
-
-        elif e['event'] == 'backspace':
-            x['backspace'] = True
-      
-        elif e['event'] == 'type' and (e['time'] - start) < 30 and e['input'] == '':
+                
+        elif e['event'] == 'type' and 'typing_rt' not in x:
+            if (e['time'] - start) < 30:
+                continue  # this is probably a mispress
             begin_type = e['time']
             x['typing_rt'] = begin_type - start
 
