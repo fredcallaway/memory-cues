@@ -27,6 +27,7 @@
         - If you remember the word, type it into the text box. Otherwise, leave it blank.
         - Hit enter to submit your response.
         - A question will appear. Press a key between 1 and 5 to answer it and move onto the next round.
+        - This practice round does not count towards your bonus.
       ` : ` `
         // ### Round ${idx+1}/${PARAMS.n_pair * 2 - 1}
 

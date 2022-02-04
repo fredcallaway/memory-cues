@@ -10,8 +10,7 @@ const PARAMS = { // = PARAMS =
   afc_bonus_time: 5000,
   
   n_pair: 40,
-  n_repeat: 1,
-  n_practice_critical: 3,
+  n_practice: 3,
   n_distractor: 10,
 
   critical_penalty: 1,
@@ -44,7 +43,6 @@ function fmt_cents(cents) {
 XX = null
 
 var CRITICAL_PAIRS
-var PRETEST_LOG = []
 PRIMES = undefined
 
 function button_trial(html, opts={}) {
@@ -74,9 +72,10 @@ async function initializeExperiment() {
   let words = _.sample(Object.keys(PRIMES.primes), PARAMS.n_pair)
 
   let pairs = _.zip(words, images).map(([word, image]) => ({word, image}))
-  console.log(pairs)
-  psiturk.recordUnstructuredData('pairs', pairs)
+  let practice_pairs = pairs.slice(0,PARAMS.n_practice).map(pair=>({...pair, practice: true}))
+  let critical_pairs = pairs.slice(PARAMS.n_practice)
 
+  psiturk.recordUnstructuredData('pairs', pairs)
   jsPsych.pluginAPI.preloadImages(images);
   // psiturk.preloadImages(images);
 
@@ -87,10 +86,9 @@ async function initializeExperiment() {
     searchParams.set('skip', 6)
   }
 
-  // let afc_bonus = (PARAMS.bonus_rate_afc + PARAMS.bonus_rate_speed) * PARAMS.n_pair * 2 * PARAMS.n_repeat
-  let pretest_bonus = (PARAMS.bonus_rate_pretest + PARAMS.bonus_rate_speed) * PARAMS.n_pair * (1+PARAMS.n_repeat)
+  let pretest_bonus = (PARAMS.bonus_rate_pretest + PARAMS.bonus_rate_speed) * (PARAMS.n_pair * 2 - PARAMS.n_practice)
   let distractor_bonus = PARAMS.bonus_rate_distractor * PARAMS.n_distractor
-  let n_critical = PARAMS.n_pair - PARAMS.n_practice_critical
+  let n_critical = PARAMS.n_pair - PARAMS.n_practice
   let critical_bonus = (PARAMS.bonus_rate_critical + PARAMS.bonus_rate_critical_speed * PARAMS.recall_time/1000) * n_critical
   let max_bonus = pretest_bonus + distractor_bonus + critical_bonus
 
@@ -159,23 +157,20 @@ async function initializeExperiment() {
 
       If you don't remember the word for the image, you can just leave
       the text box blank and hit enter. There's no penalty for guessing though!
-    ` + ((block_i == 0) ? "We'll start with a practice round." : ""))
+    `)
     
       // However, to make things harder, we won't tell you which
       // ones were correct! 😉
 
-    let timeline = _.shuffle(pairs)
-    timeline = JSON.parse(JSON.stringify(timeline))  // deep clone b/c mutation below
-    
-    if (double) {
-      timeline = timeline.concat(_.shuffle(timeline))
-    }
+    let timeline = []
     if (block_i == 0) {
-      timeline[0].practice = true
-    } 
-    // else if (block_i == PARAMS.n_repeat - 1) {
-      // timeline = timeline.concat(_.shuffle(pairs.low.concat(pairs.high)))
-    // }
+      timeline.push(..._.shuffle(practice_pairs))
+    }
+    timeline.push(..._.shuffle(critical_pairs))
+    if (double) {
+      timeline.push(..._.shuffle(critical_pairs))
+    }
+    console.log('test timeline', timeline)
     var n_correct = 0
     var time_bonus = 0
     let block = {
@@ -186,9 +181,8 @@ async function initializeExperiment() {
       timeline,
       feedback,
       on_finish: data => {
+        data.block = block_i + 1
         let {correct, rt} = data
-        PRETEST_LOG.push({word: data.trial.word, correct, rt})
-        // console.log("PRETEST_LOG", PRETEST_LOG)
         n_correct += data.correct
         if (data.correct) {
           let prop_left = (PARAMS.recall_time - data.rt) / PARAMS.recall_time
@@ -198,8 +192,6 @@ async function initializeExperiment() {
           }
           time_bonus += prop_left * PARAMS.bonus_rate_speed
         }
-        // console.log('time_bonus = ', time_bonus)
-        data.block = block_i + 1
       }
     }
     
@@ -326,33 +318,25 @@ async function initializeExperiment() {
     trial, you might still have the feeling that you knew the word, so we will
     ask how much you felt that you knew the word.`)
 
-  function critical_timeline() {
-    let timeline = _.shuffle(pairs)
-    for (let i of _.range(PARAMS.n_practice_critical)) {
-      timeline[i].practice = true
-    }
-    return timeline
-  }
-
   var critical_time_bonus = 0
   let critical_block = {
-    type: `${PARAMS.critical_type}`,
+    type: PARAMS.critical_type,
     bonus: PARAMS.bonus_rate_critical,
     penalty: PARAMS.critical_penalty,
     prime: PARAMS.prime,
     time_bonus: PARAMS.bonus_rate_critical_speed,
     recall_time: PARAMS.recall_time,
-    timeline: critical_timeline(),
-    on_finish(data) {
-      console.log("ON FINISH")
-      let x = _.last(data.events)
-      if (x.event == "response" && x.word == x.response) {
-        let rt = x.time - data.events[0].time
-        let prop_left = (PARAMS.recall_time - rt) / PARAMS.recall_time
-        prop_left = Math.max(0, prop_left)
-        critical_time_bonus += prop_left * PARAMS.bonus_rate_speed
-      }
-    },
+    timeline: _.shuffle(practice_pairs).concat(_.shuffle(critical_pairs)),
+    // on_finish(data) {
+    //   console.log("ON FINISH")
+    //   let x = _.last(data.events)
+    //   if (x.event == "response" && x.word == x.response) {
+    //     let rt = x.time - data.events[0].time
+    //     let prop_left = (PARAMS.recall_time - rt) / PARAMS.recall_time
+    //     prop_left = Math.max(0, prop_left)
+    //     critical_time_bonus += prop_left * PARAMS.bonus_rate_speed
+    //   }
+    // },
   }
 
   let debrief = {
@@ -366,12 +350,9 @@ async function initializeExperiment() {
         Thanks for participating! You earned a bonus of ${fmt_bonus()}.
         Please provide feedback on the study below.
         You can leave a box blank if you have no relevant comments.
-
-        <b>Please make sure to answer the first question!</b>
       `)
     },
     questions: [
-      'Did you notice anything about the letters that flashed in the last test round?',
       'Were the instructions confusing, hard to understand, or too long?',
       'Was the interface at all difficult to use?',
       'Did you experience any technical problems (e.g., images not displaying)?',
@@ -385,7 +366,7 @@ async function initializeExperiment() {
     // make_test_block(0),
     // make_train_block(1),
     distractor,
-    make_test_block(1, {double: true, feedback: "none"}),
+    make_test_block(0, {double: true, feedback: "none"}),
     critical_instruct,
     critical_instruct2,
     critical_block,
