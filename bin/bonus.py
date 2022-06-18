@@ -12,12 +12,13 @@ def main(codeversion):
     }).set_index('participant_id').bonus.round(2)
 
     file = f'data/human_raw/{codeversion}/bonus.csv'
-    bonus.to_csv(file, index=True, header=False)
     print(len(bonus), 'participants to receive bonuses')
     print(f'mean: ${bonus.mean():.2f}  median: ${bonus.median():.2f}')
 
+    bonus.loc[lambda x: x > 0].to_csv(file, index=True, header=False)
     os.system(f'cat {file} | pbcopy')
     print(f'Wrote {file} and copied contents to clipboard.')
 
 if __name__ == '__main__':
     Fire(main)
+

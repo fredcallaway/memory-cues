@@ -158,8 +158,8 @@ def reformat_data(version):
 
 def main(version, address, username, password):
     files = ["trialdata", "eventdata", "questiondata"]
-    # for filename in files:
-    #     fetch(address, filename, version, HTTPBasicAuth(username, password))
+    for filename in files:
+        fetch(address, filename, version, HTTPBasicAuth(username, password))
     reformat_data(version)
 
 
