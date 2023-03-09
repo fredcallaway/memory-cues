@@ -11,7 +11,6 @@ from spellchecker import SpellChecker
 def normalize(word):
     return word.strip().lower()
 
-
 import bonus
 
 # def load_words():
@@ -21,27 +20,32 @@ import bonus
 # this gets called in main
 
 CLASSIFIERS = None
+SPELL_CHECK = SpellChecker()
+
 def build_classifiers(pdf):
     
     def build(pairs):
         if pd.isna(pairs):
             return None
-        words = [x['word'] for x in literal_eval(pairs)]
-        spell = spell = SpellChecker(None)
-        spell.word_frequency.load_words(words)
+        words = set(x['word'] for x in literal_eval(pairs))
 
         # that's right, three layers of nested functions
         def classify(word, response):
             response = normalize(response)
-            if len(response) <= 2:
-                return 'empty'
-            possible_intents = set(map(normalize, spell.candidates(response)))
-            if normalize(word) in possible_intents:
+            word = normalize(word)
+            if word == response:
                 return 'correct'
-            elif any(w in possible_intents for w in words):
+            if len(response) <= 1:
+                return 'empty'
+
+            possible_intents = SPELL_CHECK.candidates(response)
+            if word in possible_intents:
+                return 'correct'
+            elif any(w in words for w in possible_intents):
                 return 'intrusion'
             else:
                 return 'other'
+
         return classify
     
     global CLASSIFIERS
@@ -242,9 +246,9 @@ def main(codeversion):
     survey = pd.DataFrame(list(survey_raw.apply(literal_eval)), index=survey_raw.index)
     survey.to_csv(out + 'survey.csv')
 
-    if os.path.isdir('/Users/fred/Projects/memory/data/'):    
-        os.system(f'rsync -av data/processed/{codeversion}/ /Users/fred/Projects/memory/data/{codeversion}/')
-        print(f'wrote /Users/fred/Projects/memory/data/{codeversion}/')
+    if os.path.isdir('/Users/fred/Projects/memory/data/full/'):
+        os.system(f'rsync -av data/processed/{codeversion}/ /Users/fred/Projects/memory/data/full/{codeversion}/')
+        print(f'wrote /Users/fred/Projects/memory/data/full/{codeversion}/')
 
     bonus.main(codeversion)
 
